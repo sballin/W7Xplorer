@@ -1,0 +1,203 @@
+<html>
+<head>
+<title>W7-X visualizer</title>
+<link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+<style>
+    body {
+        margin: 0;
+    }
+    canvas {
+        width: 100%;
+        height: 100%;
+    }
+    h4, p {
+        color:white;
+        text-align: left;
+    }
+</style>
+<script type="text/javascript" src="three.min.js"></script>
+<script type="text/javascript" src="STLLoader.js"></script>
+<script type="text/javascript" src="OrbitControls.js"></script>
+<script type="text/javascript" src="dat.gui.min.js"></script>
+<script type="text/javascript" src="THREE.TextSprite.js"></script>
+<script type="text/javascript" src="THREE.TextTexture.min.js"></script>
+</head>
+<body>
+<div style="position:fixed; text-align: right; top:1%; right:0.5%; padding: 10px; background-color: rgba(0,0,0,0.5); border-radius: 7px;">
+    <p>Rotate: drag left mouse button<br>Zoom: scroll wheel<br>Pan: drag right mouse button</p>
+    <h4>Zoom speed</h4>
+    <!-- <input type="range" name="ageInputName" id="ageInputId" value="24" min="1" max="100" oninput="ageOutputId.value = ageInputId.value"> -->
+    <!-- <output name="ageOutputName" id="ageOutputId">24</output> -->
+    <div id="slidecontainer"><input type="range" min="0.05" max="1.0" value="1.0" step="0.05" class="slider" id="zoomRange" oninput="controls.zoomSpeed = zoomRange.value"></div>
+    <h4>Rotate speed</h4>
+    <div id="slidecontainer"><input type="range" min="0.05" max="1.0" value="1.0" step="0.05" class="slider" id="rotateRange" oninput="controls.rotateSpeed = rotateRange.value"></div>
+</div>
+<script>
+
+// Initialize scene and renderer
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.001, 1e5);
+var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize( window.innerWidth, window.innerHeight );
+document.body.appendChild( renderer.domElement );
+camera.position.z = -2.5;
+
+// Browser camera controls
+controls = new THREE.OrbitControls( camera, renderer.domElement );
+controls.enableDamping = true;
+controls.dampingFactor = 1;
+controls.enableZoom = true;
+controls.maxDistance = 20;
+controls.minDistance = 0.1;
+
+// Basic lights
+var ambientLight = new THREE.AmbientLight(0xffffff);
+        scene.add(ambientLight);
+var pointLight = new THREE.PointLight( 0xffffff );
+pointLight.position.set( 0, 100, 0 );
+pointLight.shadowMapVisible = true;
+scene.add(pointLight)
+
+// Sun 
+var dirLight = new THREE.DirectionalLight( 0xffffff, 0.05 );
+dirLight.position.set( 0, -1, 0 ).normalize();
+scene.add( dirLight );
+dirLight.color.setHSL( 0.1, 0.7, 0.5 );
+addLight( 0.995, 0.5, 0.9, 0, 3e3, 0);
+
+// Add axes, hidden
+addAxes( 1 );
+// sceneAxes.visible = true;
+
+addSTL('aek50_01.stl');
+addLabel('AEK50', 0.5, 2, 6);
+addSTL('aee11_01.stl');
+addLabel('AEE11', 6, 2, -0.5);
+addSTL('aee50_01.stl');
+addLabel('AEE50', 2, 2, 6);
+addSTL('aek10_01.stl');
+addLabel('AEK10', 6, 2, 1.5);
+addSTL('aek41_01.stl');
+addLabel('AEK41', -4.3, 2, 4.3)
+plotChord();
+fetch("lcfs.json").then(response => response.json()).then(json => plotLCFS(json));
+
+
+var render = function()
+{
+    requestAnimationFrame( render );
+    renderer.render(scene, camera);
+};
+
+render();
+
+function plotChord()
+{
+    var material = new THREE.LineBasicMaterial({
+        color: 0xff0000,
+        linewidth: 10 
+    });
+
+    var geometry = new THREE.Geometry();
+    geometry.vertices.push(
+        new THREE.Vector3( 6, -0.5, 1.7 ),
+        new THREE.Vector3( 6, 0, -1 ),
+    );
+
+    var line = new THREE.Line( geometry, material );
+    this.scene.add( line );
+}
+
+function plotLCFS(input)
+{
+    var axes = new THREE.Object3D();
+    // console.log(input.x)
+    var mat = new THREE.LineBasicMaterial({ linewidth: 3, color: 0x000, transparent: true, opacity: 0.2 });
+    for(i = 0; i < 126; i++) {
+        var geom = new THREE.Geometry();
+        for(j = 0; j < 80; j++) {
+            geom.vertices.push(new THREE.Vector3(input.x[i*80+j], input.y[i*80+j], input.z[i*80+j]))
+        }
+        axes.add(new THREE.Line( geom, mat, THREE.LineSegments ));
+    }
+    axes.rotation.set( - Math.PI / 2, 0, 0 );
+    this.scene.add(axes);
+}
+
+function getLookAtVector(controls)
+{
+    var phi = controls.getAzimuthalAngle();
+    var theta = controls.getPolarAngle();
+    return new THREE.Vector3(-Math.sin(theta)*Math.sin(phi), -Math.cos(theta), -Math.sin(theta)*Math.cos(phi));
+}
+
+function addSTL(filename)
+{
+    var loader = new THREE.STLLoader();
+    loader.load( filename, function ( geometry ) {
+        // Create ISS material, rotate, and position
+        var STLMaterial = new THREE.MeshPhongMaterial( { color: 0x999999, specular: 0xfff, shininess: 50, side: THREE.DoubleSide } );
+        var STL = new THREE.Mesh( geometry, STLMaterial );
+        STL.rotation.set( - Math.PI / 2, 0, 0 );
+        STL.scale.set( 0.001, 0.001, 0.001 );
+        STL.castShadow = true;
+        STL.receiveShadow = true;
+        scene.add(STL);
+    } );
+}
+
+function addLabel(text, x, y, z, color) 
+{
+    let sprite = new THREE.TextSprite({
+        textSize: 0.3,
+        texture: {
+            text: text,
+            fontFamily: 'Arial, Helvetica, sans-serif',
+        },
+        material: {color: color || 0x000},
+    });
+    sprite.position.setX(x).setY(y).setZ(z);
+    scene.add(sprite);
+}
+
+function addAxes( length )
+{
+    var axes = new THREE.Object3D();
+    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( length, 0, 0 ), 0xFF0000, false ) ); // +X
+    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( -length, 0, 0 ), 0xFF0000, true) ); // -X
+    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, length, 0 ), 0x00FF00, false ) ); // +Y
+    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, -length, 0 ), 0x00FF00, true ) ); // -Y
+    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, length ), 0x0000FF, false ) ); // +Z
+    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, -length ), 0x0000FF, true ) ); // -Z
+    addLabel( 'x', 1.1*length, 0, 0 );
+    addLabel( 'y', 0, 1.1*length, 0 );
+    addLabel( 'z', 0, 0, 1.1*length );
+    scene.add(axes);
+}
+
+function axis( src, dst, colorHex, dashed )
+{
+    var geom = new THREE.Geometry(),
+        mat;
+    if(dashed) {
+        mat = new THREE.LineDashedMaterial({ linewidth: 3, color: colorHex, dashSize: 0.1, gapSize: 0.1 });
+    } else {
+        mat = new THREE.LineBasicMaterial({ linewidth: 3, color: colorHex });
+    }
+    geom.vertices.push( src.clone() );
+    geom.vertices.push( dst.clone() );
+    geom.computeLineDistances(); // This one is SUPER important, otherwise dashed lines will appear as simple plain lines
+    var axis = new THREE.Line( geom, mat, THREE.LineSegments );
+    return axis;
+}
+
+function addLight( h, s, l, x, y, z )
+{
+    var light = new THREE.PointLight( 0xffffff, 1.5, 2000 );
+    light.color.setHSL( h, s, l );
+    light.position.set( x, y, z );
+    scene.add( light );
+}
+</script>
+</body>
+</html>
