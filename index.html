@@ -69,6 +69,7 @@ addLight( 0.995, 0.5, 0.9, 0, 3e3, 0);
 addAxes( 1 );
 // sceneAxes.visible = true;
 
+// Add 
 addSTL('aek50_01.stl');
 addLabel('AEK50', 0.5, 2, 6);
 addSTL('aee11_01.stl');
@@ -163,12 +164,12 @@ function addLabel(text, x, y, z, color)
 function addAxes( length )
 {
     var axes = new THREE.Object3D();
-    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( length, 0, 0 ), 0xFF0000, false ) ); // +X
-    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( -length, 0, 0 ), 0xFF0000, true) ); // -X
-    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, length, 0 ), 0x00FF00, false ) ); // +Y
-    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, -length, 0 ), 0x00FF00, true ) ); // -Y
-    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, length ), 0x0000FF, false ) ); // +Z
-    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, -length ), 0x0000FF, true ) ); // -Z
+    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( length, 0, 0 ), 0x000, false ) ); // +X
+    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( -length, 0, 0 ), 0x000, true) ); // -X
+    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, length, 0 ), 0x000, false ) ); // +Y
+    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, -length, 0 ), 0x000, true ) ); // -Y
+    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, length ), 0x000, false ) ); // +Z
+    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, -length ), 0x000, true ) ); // -Z
     addLabel( 'x', 1.1*length, 0, 0 );
     addLabel( 'y', 0, 1.1*length, 0 );
     addLabel( 'z', 0, 0, 1.1*length );
@@ -180,9 +181,9 @@ function axis( src, dst, colorHex, dashed )
     var geom = new THREE.Geometry(),
         mat;
     if(dashed) {
-        mat = new THREE.LineDashedMaterial({ linewidth: 3, color: colorHex, dashSize: 0.1, gapSize: 0.1 });
+        mat = new THREE.LineDashedMaterial({ linewidth: 3, color: colorHex, dashSize: 0.1, gapSize: 0.1, transparent: true, opacity: 0.4 });
     } else {
-        mat = new THREE.LineBasicMaterial({ linewidth: 3, color: colorHex });
+        mat = new THREE.LineBasicMaterial({ linewidth: 3, color: colorHex, transparent: true, opacity: 0.4 });
     }
     geom.vertices.push( src.clone() );
     geom.vertices.push( dst.clone() );
