@@ -1,7 +1,6 @@
 <html>
 <head>
 <title>W7-X visualizer</title>
-<link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
 <style>
     body {
         margin: 0;
@@ -77,7 +76,8 @@ addLabel('AEK41', -4.3, -4.3, 2)
 var chord;
 plotChord();
 
-var gui = new dat.GUI();
+var gui = new dat.GUI({load: JSON});
+gui.remember(this);
 this.startXYZ = chord.geometry.vertices[0];
 this.startR = Math.sqrt(startXYZ.x**2+startXYZ.y**2);
 this.startZ = startXYZ.z;
