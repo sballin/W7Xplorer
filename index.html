@@ -28,8 +28,7 @@
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.001, 1e5);
 camera.up = new THREE.Vector3( 0, 0, 1 );
-camera.lookAt(new THREE.Vector3(0, -1, 0));
-camera.position.setX(0).setY(10).setZ(0);
+camera.position.setX(-6).setY(7).setZ(4.5);
 var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
@@ -59,7 +58,7 @@ dirLight.color.setHSL( 0.1, 0.7, 0.5 );
 addLight( 0.995, 0.5, 0.9, 0, 3e3, 0);
 
 // Add axes, hidden
-addAxes( 1 );
+addAxes( 0.5 );
 // sceneAxes.visible = true;
 
 fetch("lcfs.json").then(response => response.json()).then(json => plotLCFS(json));
