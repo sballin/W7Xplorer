@@ -23,15 +23,6 @@
 <script type="text/javascript" src="THREE.TextTexture.min.js"></script>
 </head>
 <body>
-<div style="position:fixed; text-align: right; top:1%; right:0.5%; padding: 10px; background-color: rgba(0,0,0,0.5); border-radius: 7px;">
-    <p>Rotate: drag left mouse button<br>Zoom: scroll wheel<br>Pan: drag right mouse button</p>
-    <h4>Zoom speed</h4>
-    <!-- <input type="range" name="ageInputName" id="ageInputId" value="24" min="1" max="100" oninput="ageOutputId.value = ageInputId.value"> -->
-    <!-- <output name="ageOutputName" id="ageOutputId">24</output> -->
-    <div id="slidecontainer"><input type="range" min="0.05" max="1.0" value="1.0" step="0.05" class="slider" id="zoomRange" oninput="controls.zoomSpeed = zoomRange.value"></div>
-    <h4>Rotate speed</h4>
-    <div id="slidecontainer"><input type="range" min="0.05" max="1.0" value="1.0" step="0.05" class="slider" id="rotateRange" oninput="controls.rotateSpeed = rotateRange.value"></div>
-</div>
 <script>
 
 // Initialize scene and renderer
@@ -39,7 +30,7 @@ var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.001, 1e5);
 camera.up = new THREE.Vector3( 0, 0, 1 );
 camera.lookAt(new THREE.Vector3(0, -1, 0));
-camera.position.setX(0).setY(2.5).setZ(0);
+camera.position.setX(0).setY(10).setZ(0);
 var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
@@ -83,7 +74,42 @@ addSTL('aek10_01.stl');
 addLabel('AEK10', 6, -1.5, 2);
 addSTL('aek41_01.stl');
 addLabel('AEK41', -4.3, -4.3, 2)
+var chord;
 plotChord();
+
+var gui = new dat.GUI();
+this.startXYZ = chord.geometry.vertices[0];
+this.startR = Math.sqrt(startXYZ.x**2+startXYZ.y**2);
+this.startZ = startXYZ.z;
+this.startPhi = 2*Math.PI - Math.atan(startXYZ.y/startXYZ.x);
+this.endXYZ = chord.geometry.vertices[1];
+this.endR = Math.sqrt(endXYZ.x**2+endXYZ.y**2);
+this.endZ = endXYZ.z;
+this.endPhi = 2*Math.PI - Math.atan(endXYZ.y/endXYZ.x);
+gui.add(controls, "zoomSpeed", 0.05, 1.0, 0.05);
+gui.add(controls, "rotateSpeed", 0.05, 1.0, 0.05);
+gui.add(this, "startR", 4.0, 7.0, 0.001).onChange(function(value) {
+                                                      startXYZ.x = value*Math.cos(startPhi);
+                                                      startXYZ.y = value*Math.sin(startPhi);
+                                                      chord.geometry.verticesNeedUpdate = true;});
+gui.add(this, "startZ", -2.0, 2.0, 0.001).onChange(function(value) {
+                                                       startXYZ.z = value;
+                                                       chord.geometry.verticesNeedUpdate = true});
+gui.add(this, "startPhi", 0, 2*Math.PI, 0.001).onChange(function(value) {
+                                                            startXYZ.x = startR*Math.cos(value);
+                                                            startXYZ.y = startR*Math.sin(value);
+                                                            chord.geometry.verticesNeedUpdate = true;});
+gui.add(this, "endR", 4.0, 7.0, 0.001).onChange(function(value) {
+                                                    endXYZ.x = value*Math.cos(endPhi);
+                                                    endXYZ.y = value*Math.sin(endPhi);
+                                                    chord.geometry.verticesNeedUpdate = true;});
+gui.add(this, "endZ", -2.0, 2.0, 0.001).onChange(function(value) {
+                                                     endXYZ.z = value;
+                                                     chord.geometry.verticesNeedUpdate = true});
+gui.add(this, "endPhi", 0, 2*Math.PI, 0.001).onChange(function(value) {
+                                                          endXYZ.x = endR*Math.cos(value);
+                                                          endXYZ.y = endR*Math.sin(value);
+                                                          chord.geometry.verticesNeedUpdate = true;});
 
 var render = function()
 {
@@ -106,13 +132,13 @@ function plotChord()
         new THREE.Vector3( 6, 1, 0 ),
     );
 
-    var line = new THREE.Line( geometry, material );
-    this.scene.add( line );
+    chord = new THREE.Line( geometry, material );
+    scene.add( chord );
 }
 
 function plotLCFS(input)
 {
-    var axes = new THREE.Object3D();
+    var LCFS = new THREE.Object3D();
     // console.log(input.x)
     var mat = new THREE.LineBasicMaterial({ linewidth: 3, color: 0x000, transparent: true, opacity: 0.2 });
     for(i = 0; i < 126; i++) {
@@ -120,9 +146,9 @@ function plotLCFS(input)
         for(j = 0; j < 80; j++) {
             geom.vertices.push(new THREE.Vector3(input.x[i*80+j], input.y[i*80+j], input.z[i*80+j]))
         }
-        axes.add(new THREE.Line( geom, mat, THREE.LineSegments ));
+        LCFS.add(new THREE.Line( geom, mat, THREE.LineSegments ));
     }
-    this.scene.add(axes);
+    scene.add(LCFS);
 }
 
 function getLookAtVector(controls)
