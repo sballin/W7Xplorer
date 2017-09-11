@@ -57,6 +57,27 @@
       }
     }
   },
-  "folders": {},
+  "folders": {
+    "Controls": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    },
+    "Start": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    },
+    "End": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    },
+    "Chord": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    }
+  },
   "preset": "AEK50_2"
 }
