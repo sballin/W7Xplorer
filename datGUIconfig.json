@@ -1,0 +1,62 @@
+{
+  "closed": false,
+  "remembered": {
+    "undefined": {
+      "0": {
+        "startR": 6.953,
+        "startZ": -0.243,
+        "startPhi": 4.876,
+        "endR": 6.24,
+        "endZ": -0.08700000000000001,
+        "endPhi": 5.055,
+        "chordLength": 2.5495097567963922
+      }
+    },
+    "AEE50_1": {
+      "0": {
+        "startR": 6.433,
+        "startZ": -0.243,
+        "startPhi": 4.876,
+        "endR": 6.24,
+        "endZ": -0.08700000000000001,
+        "endPhi": 5.055,
+        "chordLength": 2.5495097567963922
+      }
+    },
+    "AEE50_2": {
+      "0": {
+        "startR": 6.5,
+        "startZ": -0.243,
+        "startPhi": 4.876,
+        "endR": 6.22,
+        "endZ": -0.08700000000000001,
+        "endPhi": 4.99,
+        "chordLength": 2.5495097567963922
+      }
+    },
+    "AEK50_1": {
+      "0": {
+        "startR": 6.337,
+        "startZ": -0.22,
+        "startPhi": 4.739,
+        "endR": 6.24,
+        "endZ": 0.05,
+        "endPhi": 4.931,
+        "chordLength": 2.5495097567963922
+      }
+    },
+    "AEK50_2": {
+      "0": {
+        "startR": 6.356,
+        "startZ": -0.22,
+        "startPhi": 4.739,
+        "endR": 6.188,
+        "endZ": -0.05,
+        "endPhi": 4.865,
+        "chordLength": 2.5495097567963922
+      }
+    }
+  },
+  "folders": {},
+  "preset": "AEK50_2"
+}

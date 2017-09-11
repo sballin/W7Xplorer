@@ -5,14 +5,117 @@
     body {
         margin: 0;
     }
+    
     canvas {
         width: 100%;
         height: 100%;
     }
+    
     h4, p {
         color:white;
         text-align: left;
     }
+    
+body .dg .c,
+body .dg .cr.function,
+body .dg .c select,
+body .dg .property-name,
+body .dg .title {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+
+body .dg.main.taller-than-window .close-button {
+    border-top: 1px solid #ddd;
+}
+
+body .dg.main .close-button {
+    background-color: #eee;
+}
+ 
+body .dg.main .close-button:hover {
+    background-color: #eee;
+}
+
+body .dg {
+    color: #555;
+    text-shadow: none !important;
+}
+
+body .dg.main::-webkit-scrollbar {
+    background: #fafafa;
+}
+
+body .dg.main::-webkit-scrollbar-thumb {
+    background: #bbb;
+}
+ 
+body .dg li:not(.folder) {
+    background: #fafafa;
+    border-bottom: 1px solid #ddd;
+}
+ 
+body .dg li.save-row .button {
+    text-shadow: none !important;
+}
+
+body .dg li.title {
+    background: #e8e8e8 url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlI+hKgFxoCgAOw==) 6px 10px no-repeat;
+}
+
+body .dg li.folder {
+    border-left: 0;
+}
+
+body .dg .cr.function:hover,
+body .dg .cr.boolean:hover {
+    background: #fff;
+}
+ 
+body .dg .c input[type=text] {
+    background: #e9e9e9;
+}
+ 
+body .dg .c input[type=text]:hover {
+    background: #eee;
+}
+ 
+body .dg .c input[type=text]:focus {
+    background: #eee;
+    color: #555;
+}
+ 
+body .dg .c .slider {
+    background: #e9e9e9;
+}
+
+body .dg .c .slider:hover {
+    background: #eee;
+}
+
+body .dg.a {
+    margin-right: 9px;
+    margin-top: 9px;
+}
+
+body .dg .cr.function {
+    background: #eee;
+}
+
+body .dg .cr.function:hover {
+    background: #dadada;
+    border-bottom: 1px solid #2fa1d6;
+}
+
+body .dg .cr.function:active {
+    background: #ddd;
+    border-bottom: 1px solid #2fa1d6;
+}
 </style>
 <script type="text/javascript" src="three.min.js"></script>
 <script type="text/javascript" src="STLLoader.js"></script>
@@ -75,92 +178,8 @@ addLabel('AEK41', -4.3, -4.3, 2)
 var chord;
 plotChord();
 
-var gui = new dat.GUI({
-  "closed": false,
-  "remembered": {
-    "undefined": {
-      "0": {
-        "startR": 6.953,
-        "startZ": -0.243,
-        "startPhi": 4.876,
-        "endR": 6.24,
-        "endZ": -0.08700000000000001,
-        "endPhi": 5.055,
-        "chordLength": 2.5495097567963922
-      }
-    },
-    "AEE50_1": {
-      "0": {
-        "startR": 6.433,
-        "startZ": -0.243,
-        "startPhi": 4.876,
-        "endR": 6.24,
-        "endZ": -0.08700000000000001,
-        "endPhi": 5.055,
-        "chordLength": 2.5495097567963922
-      }
-    },
-    "AEE50_2": {
-      "0": {
-        "startR": 6.5,
-        "startZ": -0.243,
-        "startPhi": 4.876,
-        "endR": 6.22,
-        "endZ": -0.08700000000000001,
-        "endPhi": 4.99,
-        "chordLength": 2.5495097567963922
-      }
-    },
-    "AEK50_1": {
-      "0": {
-        "startR": 6.337,
-        "startZ": -0.22,
-        "startPhi": 4.739,
-        "endR": 6.24,
-        "endZ": 0.05,
-        "endPhi": 4.931,
-        "chordLength": 2.5495097567963922
-      }
-    }
-  },
-  "folders": {},
-  "preset": "AEK50_1"
-});
-gui.remember(this);
-this.startXYZ = chord.geometry.vertices[0];
-this.startR = Math.sqrt(startXYZ.x**2+startXYZ.y**2);
-this.startZ = startXYZ.z;
-this.startPhi = 2*Math.PI - Math.atan(startXYZ.y/startXYZ.x);
-this.endXYZ = chord.geometry.vertices[1];
-this.endR = Math.sqrt(endXYZ.x**2+endXYZ.y**2);
-this.endZ = endXYZ.z;
-this.endPhi = 2*Math.PI - Math.atan(endXYZ.y/endXYZ.x);
-gui.add(controls, "zoomSpeed", 0.05, 1.0, 0.05);
-gui.add(controls, "rotateSpeed", 0.05, 1.0, 0.05);
-gui.add(this, "startR", 4.0, 7.0, 0.001).onChange(function(value) {
-                                                      startXYZ.x = value*Math.cos(startPhi);
-                                                      startXYZ.y = value*Math.sin(startPhi);
-                                                      chord.geometry.verticesNeedUpdate = true;});
-gui.add(this, "startZ", -2.0, 2.0, 0.001).onChange(function(value) {
-                                                       startXYZ.z = value;
-                                                       chord.geometry.verticesNeedUpdate = true});
-gui.add(this, "startPhi", 0, 2*Math.PI, 0.001).onChange(function(value) {
-                                                            startXYZ.x = startR*Math.cos(value);
-                                                            startXYZ.y = startR*Math.sin(value);
-                                                            chord.geometry.verticesNeedUpdate = true;});
-gui.add(this, "endR", 4.0, 7.0, 0.001).onChange(function(value) {
-                                                    endXYZ.x = value*Math.cos(endPhi);
-                                                    endXYZ.y = value*Math.sin(endPhi);
-                                                    chord.geometry.verticesNeedUpdate = true;});
-gui.add(this, "endZ", -2.0, 2.0, 0.001).onChange(function(value) {
-                                                     endXYZ.z = value;
-                                                     chord.geometry.verticesNeedUpdate = true});
-gui.add(this, "endPhi", 0, 2*Math.PI, 0.001).onChange(function(value) {
-                                                          endXYZ.x = endR*Math.cos(value);
-                                                          endXYZ.y = endR*Math.sin(value);
-                                                          chord.geometry.verticesNeedUpdate = true;});
-this.chordLength = Math.sqrt((endXYZ.x-startXYZ.x)**2+(endXYZ.y-startXYZ.y)**2+(endXYZ.z-startXYZ.z)**2);
-gui.add(this, "chordLength").listen();
+var gui;
+fetch("datGUIconfig.json").then(response => response.json()).then(json => makeGui(json));
 
 var render = function()
 {
@@ -169,6 +188,85 @@ var render = function()
 };
 
 render();
+
+function makeGui(json) 
+{
+    gui = new dat.GUI({load: json});
+    gui.remember(this.parent);
+    this.startXYZ = chord.geometry.vertices[0];
+    this.startR = Math.sqrt(startXYZ.x**2+startXYZ.y**2);
+    this.startZ = startXYZ.z;
+    this.startPhi = 2*Math.PI - Math.atan(startXYZ.y/startXYZ.x);
+    this.endXYZ = chord.geometry.vertices[1];
+    this.endR = Math.sqrt(endXYZ.x**2+endXYZ.y**2);
+    this.endZ = endXYZ.z;
+    this.endPhi = 2*Math.PI - Math.atan(endXYZ.y/endXYZ.x);
+    var chordLength;
+    updateChordLength();
+    this.recalculate = updateChordLength;
+
+    var controlsFolder = gui.addFolder('Controls');
+    controlsFolder.add(controls, "zoomSpeed", 0.05, 1.0, 0.05);
+    controlsFolder.add(controls, "rotateSpeed", 0.05, 1.0, 0.05);
+
+    var startFolder = gui.addFolder('Start');
+    startFolder.add(this, "startR", 4.0, 7.0, 0.001).onChange(function(value) 
+                                                      {
+                                                          startXYZ.x = value*Math.cos(startPhi);
+                                                          startXYZ.y = value*Math.sin(startPhi);
+                                                          chord.geometry.verticesNeedUpdate = true;
+                                                          updateChordLength();
+                                                      });
+    startFolder.add(this, "startZ", -2.0, 2.0, 0.001).onChange(function(value) 
+                                                       {
+                                                           startXYZ.z = value;
+                                                           chord.geometry.verticesNeedUpdate = true;
+                                                           updateChordLength();
+                                                       });
+    startFolder.add(this, "startPhi", 0, 2*Math.PI, 0.001).onChange(function(value) 
+                                                            {
+                                                                startXYZ.x = startR*Math.cos(value);
+                                                                startXYZ.y = startR*Math.sin(value);
+                                                                chord.geometry.verticesNeedUpdate = true;
+                                                                updateChordLength();
+                                                            });
+
+    var endFolder = gui.addFolder('End');
+    endFolder.add(this, "endR", 4.0, 7.0, 0.001).onChange(function(value) 
+                                                    {
+                                                        endXYZ.x = value*Math.cos(endPhi);
+                                                        endXYZ.y = value*Math.sin(endPhi);
+                                                        chord.geometry.verticesNeedUpdate = true;
+                                                        updateChordLength();
+                                                    });
+    endFolder.add(this, "endZ", -2.0, 2.0, 0.001).onChange(function(value) 
+                                                     {
+                                                         endXYZ.z = value;
+                                                         chord.geometry.verticesNeedUpdate = true
+                                                         updateChordLength();
+                                                     });
+    endFolder.add(this, "endPhi", 0, 2*Math.PI, 0.001).onChange(function(value) 
+                                                          {
+                                                              endXYZ.x = endR*Math.cos(value);
+                                                              endXYZ.y = endR*Math.sin(value);
+                                                              chord.geometry.verticesNeedUpdate = true;
+                                                              updateChordLength();
+                                                          });
+
+    var chordFolder = gui.addFolder('Chord')
+    chordFolder.add(this, "chordLength").listen();
+    chordFolder.add(this, "recalculate")
+
+    controlsFolder.open();
+    startFolder.open();
+    endFolder.open();
+    chordFolder.open();
+}
+
+function updateChordLength()
+{
+    chordLength = Math.sqrt((endXYZ.x-startXYZ.x)**2+(endXYZ.y-startXYZ.y)**2+(endXYZ.z-startXYZ.z)**2)*1000;
+}
 
 function plotChord()
 {
