@@ -1,30 +1,30 @@
 <html>
-<head>
-    <title>W7-X visualizer</title>
-    <style>
-        body {
-            margin: 0;
-        }
-        
-        canvas {
-            width: 100%;
-            height: 100%;
-        }
-        
-        h4, p {
-            color:white;
-            text-align: left;
-        }
-    </style>
-    <link rel="stylesheet" href="datGuiLight.css">
-    <script src="three.min.js"></script>
-    <script src="STLLoader.js"></script>
-    <script src="OrbitControls.js"></script>
-    <script src="dat.gui.min.js"></script>
-    <script src="THREE.TextSprite.js"></script>
-    <script src="THREE.TextTexture.min.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
-</head>
+    <head>
+        <title>W7-X visualizer</title>
+        <style>
+            body {
+                margin: 0;
+            }
+            
+            canvas {
+                width: 100%;
+                height: 100%;
+            }
+            
+            h4, p {
+                color:white;
+                text-align: left;
+            }
+        </style>
+        <link rel="stylesheet" href="datGuiLight.css">
+        <script src="js/three.min.js"></script>
+        <script src="js/STLLoader.js"></script>
+        <script src="js/OrbitControls.js"></script>
+        <script src="js/dat.gui.min.js"></script>
+        <script src="js/THREE.TextSprite.js"></script>
+        <script src="js/THREE.TextTexture.min.js"></script>
+        <script src="js/jquery.min.js"></script>
+    </head>
 <body>
 <script>
 // Initialize scene and renderer
@@ -63,7 +63,7 @@ addLight( 0.995, 0.5, 0.9, 0, 3e3, 0);
 // Add axes
 addAxes( 0.5 );
 
-fetch("lcfs.json").then(response => response.json()).then(json => plotLCFS(json));
+fetch("./lcfs.json").then(response => response.json()).then(json => plotLCFS(json));
 addSTL('aek50_01.stl');
 addLabel('AEK50', 0.5, -6, 2);
 addSTL('aee11_01.stl');
@@ -75,10 +75,16 @@ addLabel('AEK10', 6, -1.5, 2);
 addSTL('aek41_01.stl');
 addLabel('AEK41', -4.3, -4.3, 2)
 var chord;
-plotChord();
-
+var chordLength;
 var gui;
 fetch("datGUIconfig.json").then(response => response.json()).then(json => makeGui(json));
+
+$(window).bind('beforeunload', function(e) {
+    // Your code and validation
+    if (confirm) {
+        return "Are you sure?";
+    }
+});
 
 var render = function()
 {
@@ -104,27 +110,53 @@ function saveConfigToServer()
 
 function updateChordLength()
 {
-    chordLength = Math.sqrt((endXYZ.x-startXYZ.x)**2+(endXYZ.y-startXYZ.y)**2+(endXYZ.z-startXYZ.z)**2)*1000;
+    this.chordLength = Math.sqrt((endXYZ.x-startXYZ.x)**2+(endXYZ.y-startXYZ.y)**2+(endXYZ.z-startXYZ.z)**2)*1000;
+}
+
+function help()
+{
+    alert(`[Left mouse button drag] rotate
+        
+[Right mouse button drag] pan (changes center of zoom/rotation, useful for precision operations)
+
+[Scroll] zoom in/out
+          
+[Dropdown] select configuration to open (switch to something else and back if it doesn't look right). Star (*) indicates unsaved changes
+          
+[Gear icon] make sure checkbox is *not* checked. Copy and save the presented text if you don't trust the server to keep it safe
+
+[Save] save current configuration to the name selected in the dropdown
+
+[New] you're prompted to give a name to create a new configuration
+
+[Revert] revert the current configuration, if modified (*), to its last saved state
+
+[Recalculate button] recalculate the chord length, in mm
+
+[Blue bars] drag left-right for coarse-grained control of parameter. Drag parameter up-down for fine-grained control`)
 }
 
 function makeGui(json) 
 {
     gui = new dat.GUI({load: json});
     gui.remember(this.parent);
-    this.startXYZ = chord.geometry.vertices[0];
-    this.startR = Math.sqrt(startXYZ.x**2+startXYZ.y**2);
-    this.startZ = startXYZ.z;
-    this.startPhi = 2*Math.PI - Math.atan(startXYZ.y/startXYZ.x);
-    this.endXYZ = chord.geometry.vertices[1];
-    this.endR = Math.sqrt(endXYZ.x**2+endXYZ.y**2);
-    this.endZ = endXYZ.z;
-    this.endPhi = 2*Math.PI - Math.atan(endXYZ.y/endXYZ.x);
-    var chordLength;
-    updateChordLength();
+    var old = json.remembered[json.preset][0]
+    this.startR = old.startR;
+    this.startZ = old.startZ;
+    this.startPhi = old.startPhi;
+    this.endR = old.endR;
+    this.endZ = old.endZ;
+    this.endPhi = old.endPhi;
     this.recalculate = updateChordLength;
     this.saveToServer = saveConfigToServer;
+    this.help = help;
+    plotChord();
+    this.startXYZ = chord.geometry.vertices[0];
+    this.endXYZ = chord.geometry.vertices[1];
+    updateChordLength();
     
     gui.add(this, "saveToServer");
+    gui.add(this, "help");
 
     var controlsFolder = gui.addFolder('Controls');
     controlsFolder.add(controls, "zoomSpeed", 0.05, 1.0, 0.05);
@@ -173,9 +205,10 @@ function makeGui(json)
                                                               chord.geometry.verticesNeedUpdate = true;
                                                               updateChordLength();
                                                           });
-
+    
     var chordFolder = gui.addFolder('Chord')
     chordFolder.add(this, "chordLength").listen();
+    updateChordLength();
     chordFolder.add(this, "recalculate")
 
     controlsFolder.open();
@@ -193,8 +226,8 @@ function plotChord()
 
     var geometry = new THREE.Geometry();
     geometry.vertices.push(
-        new THREE.Vector3( 6, -1.5, -0.5 ),
-        new THREE.Vector3( 6, 1, 0 ),
+        new THREE.Vector3(startR*Math.cos(startPhi), startR*Math.sin(startPhi), startZ),
+        new THREE.Vector3(endR*Math.cos(endPhi), endR*Math.sin(endPhi), endZ)
     );
 
     chord = new THREE.Line( geometry, material );
@@ -204,13 +237,20 @@ function plotChord()
 function plotLCFS(input)
 {
     var LCFS = new THREE.Object3D();
-    // console.log(input.x)
     var mat = new THREE.LineBasicMaterial({ linewidth: 3, color: 0x000, transparent: true, opacity: 0.2 });
     for(i = 0; i < 126; i++) {
         var geom = new THREE.Geometry();
         for(j = 0; j < 80; j++) {
             geom.vertices.push(new THREE.Vector3(input.x[i*80+j], input.y[i*80+j], input.z[i*80+j]))
         }
+        LCFS.add(new THREE.Line( geom, mat, THREE.LineSegments ));
+    }
+    for(i = 0; i < 79; i++) {
+        var geom = new THREE.Geometry();
+        for(j = 0; j < 126; j++) {
+            geom.vertices.push(new THREE.Vector3(input.x[i+j*80], input.y[i+j*80], input.z[i+j*80]))
+        }
+        geom.vertices.push(new THREE.Vector3(input.x[i], input.y[i], input.z[i]))
         LCFS.add(new THREE.Line( geom, mat, THREE.LineSegments ));
     }
     scene.add(LCFS);
