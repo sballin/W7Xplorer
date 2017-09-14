@@ -63,7 +63,9 @@ addLight( 0.995, 0.5, 0.9, 0, 3e3, 0);
 // Add axes
 addAxes( 0.5 );
 
-fetch("./lcfs.json").then(response => response.json()).then(json => plotLCFS(json));
+var LCFSDict = {};
+var key;
+fetch('lcfs_A_standard_beta-0.json').then(response => response.json()).then(json => LCFSDict['A_standard_beta-0'] = plotLCFS(json));
 addSTL('aek50_01.stl');
 addLabel('AEK50', 0.5, -6, 2);
 addSTL('aee11_01.stl');
@@ -79,12 +81,12 @@ var chordLength;
 var gui;
 fetch("datGUIconfig.json").then(response => response.json()).then(json => makeGui(json));
 
-$(window).bind('beforeunload', function(e) {
-    // Your code and validation
-    if (confirm) {
-        return "Are you sure?";
-    }
-});
+// $(window).bind('beforeunload', function(e) {
+//     // Your code and validation
+//     if (confirm) {
+//         return "Are you sure?";
+//     }
+// });
 
 var render = function()
 {
@@ -136,11 +138,20 @@ function help()
 [Blue bars] drag left-right for coarse-grained control of parameter. Drag parameter up-down for fine-grained control`)
 }
 
+function updateLCFS(json)
+{
+    for (var keyi in LCFSDict) 
+        if (LCFSDict.hasOwnProperty(keyi)) 
+            LCFSDict[keyi].visible = false;
+    LCFSDict[json.name] = plotLCFS(json);
+}
+
 function makeGui(json) 
 {
     gui = new dat.GUI({load: json});
     gui.remember(this.parent);
     var old = json.remembered[json.preset][0]
+    this.magneticConfig = 'A_standard_beta-0';
     this.startR = old.startR;
     this.startZ = old.startZ;
     this.startPhi = old.startPhi;
@@ -157,54 +168,76 @@ function makeGui(json)
     
     gui.add(this, "saveToServer");
     gui.add(this, "help");
+    gui.add(this, "magneticConfig", ['A_standard_beta-0', 
+                                     'A_standard_beta-0.056', 
+                                     'B-low-iota_beta-0', 
+                                     'B_low-iota_beta-0.021', 
+                                     'C_high-iota_beta-0', 
+                                     'C_high-iota_beta-0.021', 
+                                     'D_low-mirror_beta-0', 
+                                     'D_low-mirror_beta-0.043', 
+                                     'E_high-mirror_beta-0', 
+                                     'E_high-mirror_beta-0.053'])
+       .onChange(function(key) 
+                 {
+                     if (key in LCFSDict)
+                     {
+                         for (var keyi in LCFSDict) 
+                             if (LCFSDict.hasOwnProperty(keyi)) 
+                                 LCFSDict[keyi].visible = false;
+                         LCFSDict[key].visible = true;
+                     }
+                     else
+                         fetch('lcfs_' + key + '.json').then(response => response.json()).then(json => updateLCFS(json));
+                 });
 
     var controlsFolder = gui.addFolder('Controls');
     controlsFolder.add(controls, "zoomSpeed", 0.05, 1.0, 0.05);
     controlsFolder.add(controls, "rotateSpeed", 0.05, 1.0, 0.05);
 
     var startFolder = gui.addFolder('Start');
-    startFolder.add(this, "startR", 4.0, 7.0, 0.001).onChange(function(value) 
-                                                      {
-                                                          startXYZ.x = value*Math.cos(startPhi);
-                                                          startXYZ.y = value*Math.sin(startPhi);
-                                                          chord.geometry.verticesNeedUpdate = true;
-                                                          updateChordLength();
-                                                      });
-    startFolder.add(this, "startZ", -2.0, 2.0, 0.001).onChange(function(value) 
-                                                       {
-                                                           startXYZ.z = value;
-                                                           chord.geometry.verticesNeedUpdate = true;
-                                                           updateChordLength();
-                                                       });
-    startFolder.add(this, "startPhi", 0, 2*Math.PI, 0.001).onChange(function(value) 
-                                                            {
-                                                                startXYZ.x = startR*Math.cos(value);
-                                                                startXYZ.y = startR*Math.sin(value);
-                                                                chord.geometry.verticesNeedUpdate = true;
-                                                                updateChordLength();
-                                                            });
+    startFolder.add(this, "startR", 4.0, 7.0, 0.001).onChange(function(r) 
+                                                              {
+                                                                  startXYZ.x = r*Math.cos(startPhi);
+                                                                  startXYZ.y = r*Math.sin(startPhi);
+                                                                  chord.geometry.verticesNeedUpdate = true;
+                                                                  updateChordLength();
+                                                              });
+    startFolder.add(this, "startZ", -2.0, 2.0, 0.001).onChange(function(z) 
+                                                               {
+                                                                   startXYZ.z = z;
+                                                                   chord.geometry.verticesNeedUpdate = true;
+                                                                   updateChordLength();
+                                                               });
+    startFolder.add(this, "startPhi", 0, 2*Math.PI, 0.001).onChange(function(phi) 
+                                                                    {
+                                                                        startXYZ.x = startR*Math.cos(phi);
+                                                                        startXYZ.y = startR*Math.sin(phi);
+                                                                        chord.geometry.verticesNeedUpdate = true;
+                                                                        updateChordLength();
+                                                                    });
 
     var endFolder = gui.addFolder('End');
-    endFolder.add(this, "endR", 4.0, 7.0, 0.001).onChange(function(value) 
-                                                    {
-                                                        endXYZ.x = value*Math.cos(endPhi);
-                                                        endXYZ.y = value*Math.sin(endPhi);
-                                                        chord.geometry.verticesNeedUpdate = true;
-                                                        updateChordLength();
-                                                    });
-    endFolder.add(this, "endZ", -2.0, 2.0, 0.001).onChange(function(value) 
-                                                     {
-                                                         endXYZ.z = value;
-                                                         chord.geometry.verticesNeedUpdate = true
-                                                         updateChordLength();
-                                                     });
-    endFolder.add(this, "endPhi", 0, 2*Math.PI, 0.001).onChange(function(value) 
+    endFolder.add(this, "endR", 4.0, 7.0, 0.001).onChange(function(r) 
                                                           {
-                                                              endXYZ.x = endR*Math.cos(value);
-                                                              endXYZ.y = endR*Math.sin(value);
+                                                              endXYZ.x = r*Math.cos(endPhi);
+                                                              endXYZ.y = r*Math.sin(endPhi);
                                                               chord.geometry.verticesNeedUpdate = true;
                                                               updateChordLength();
                                                           });
+    endFolder.add(this, "endZ", -2.0, 2.0, 0.001).onChange(function(z) 
+                                                           {
+                                                               endXYZ.z = z;
+                                                               chord.geometry.verticesNeedUpdate = true
+                                                               updateChordLength();
+                                                           });
+    endFolder.add(this, "endPhi", 0, 2*Math.PI, 0.001).onChange(function(phi) 
+                                                                {
+                                                                    endXYZ.x = endR*Math.cos(phi);
+                                                                    endXYZ.y = endR*Math.sin(phi);
+                                                                    chord.geometry.verticesNeedUpdate = true;
+                                                                    updateChordLength();
+                                                                });
     
     var chordFolder = gui.addFolder('Chord')
     chordFolder.add(this, "chordLength").listen();
@@ -238,22 +271,28 @@ function plotLCFS(input)
 {
     var LCFS = new THREE.Object3D();
     var mat = new THREE.LineBasicMaterial({ linewidth: 3, color: 0x000, transparent: true, opacity: 0.2 });
-    for(i = 0; i < 126; i++) {
+    var lcfs_x = Array(80*252);
+    var lcfs_y = Array(80*252);
+    var lcfs_z = input.z;
+    for (i = 0; i < 252; i++) {
         var geom = new THREE.Geometry();
-        for(j = 0; j < 80; j++) {
-            geom.vertices.push(new THREE.Vector3(input.x[i*80+j], input.y[i*80+j], input.z[i*80+j]))
+        for (j = 0; j < 80; j++) 
+        {
+            lcfs_x[i*80+j] = input.r[i*80+j]*Math.cos(input.phi[i]);
+            lcfs_y[i*80+j] = input.r[i*80+j]*Math.sin(input.phi[i]);
+            geom.vertices.push(new THREE.Vector3(lcfs_x[i*80+j], lcfs_y[i*80+j], lcfs_z[i*80+j]));
         }
         LCFS.add(new THREE.Line( geom, mat, THREE.LineSegments ));
     }
-    for(i = 0; i < 79; i++) {
+    for (i = 0; i < 79; i++) {
         var geom = new THREE.Geometry();
-        for(j = 0; j < 126; j++) {
-            geom.vertices.push(new THREE.Vector3(input.x[i+j*80], input.y[i+j*80], input.z[i+j*80]))
-        }
-        geom.vertices.push(new THREE.Vector3(input.x[i], input.y[i], input.z[i]))
+        for (j = 0; j < 252; j++) 
+            geom.vertices.push(new THREE.Vector3(lcfs_x[i+j*80], lcfs_y[i+j*80], lcfs_z[i+j*80]));
+        geom.vertices.push(new THREE.Vector3(lcfs_x[i], lcfs_y[i], lcfs_z[i]))
         LCFS.add(new THREE.Line( geom, mat, THREE.LineSegments ));
     }
     scene.add(LCFS);
+    return LCFS;
 }
 
 function getLookAtVector(controls)
