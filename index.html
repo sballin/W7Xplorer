@@ -79,7 +79,7 @@ addLabel('AEK41', -4.3, -4.3, 2)
 var chord;
 var chordLength;
 var gui;
-fetch("cgi-bin/datGUIconfig.json").then(response => response.json()).then(json => makeGui(json));
+fetch("datGUIconfig.json").then(response => response.json()).then(json => makeGui(json));
 
 $(window).bind('beforeunload', function(e) {
     // Your code and validation
