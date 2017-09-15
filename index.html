@@ -133,8 +133,6 @@ function help()
 
 [Revert] revert the current configuration, if modified (*), to its last saved state
 
-[Recalculate button] recalculate the chord length, in mm
-
 [Blue bars] drag left-right for coarse-grained control of parameter. Drag parameter up-down for fine-grained control`)
 }
 
@@ -158,7 +156,6 @@ function makeGui(json)
     this.endR = old.endR;
     this.endZ = old.endZ;
     this.endPhi = old.endPhi;
-    this.recalculate = updateChordLength;
     this.saveToServer = saveConfigToServer;
     this.help = help;
     plotChord();
@@ -242,7 +239,6 @@ function makeGui(json)
     var chordFolder = gui.addFolder('Chord')
     chordFolder.add(this, "chordLength").listen();
     updateChordLength();
-    chordFolder.add(this, "recalculate")
 
     controlsFolder.open();
     startFolder.open();
