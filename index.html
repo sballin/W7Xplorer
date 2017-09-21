@@ -99,7 +99,7 @@ render();
 function saveConfigToServer()
 {
     $.ajax({
-        url: "save.py",
+        url: "cgi-bin/save.py",
         type: "post",
         datatype: "json",
         data: {text: JSON.stringify(gui.getSaveObject(), undefined, 2)},
