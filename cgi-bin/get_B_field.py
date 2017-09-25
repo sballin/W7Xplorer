@@ -12,7 +12,7 @@ x = float(fs.getvalue('x'))
 y = float(fs.getvalue('y'))
 z = float(fs.getvalue('z'))
 
-with open('cgi-bin/key') as f:
+with open('key') as f:
     key = f.read()
     key = key.split('\n')[0]
     
@@ -29,6 +29,8 @@ config_dict = {'A_standard_beta-0':        '1000_1000_1000_1000_+0000_+0000/01/0
                'E_high-mirror_beta-0.053': '0972_0926_0880_0852_+0000_+0000/01/24a/'}
 
 ps = pexpect.spawn("ssh jter@gate.rzg.mpg.de -t \"( curl '{}{}magneticfield.json?x={}&y={}&z={}' )\"".format(base_url, config_dict[config], x, y, z))
+ps.expect('Are you sure you want to continue connecting (yes/no)?')
+ps.sendline('yes')
 ps.expect('Password:')
 ps.sendline(key)
 server_output = ps.read()
