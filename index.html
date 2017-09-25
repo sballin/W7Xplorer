@@ -1,6 +1,6 @@
 <html>
     <head>
-        <title>W7-X visualizer</title>
+        <title>w7xplorer</title>
         <style>
             body {
                 margin: 0;
@@ -29,16 +29,15 @@
 <script>
 // Initialize scene and renderer
 var scene = new THREE.Scene();
-var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.001, 1e5);
-camera.up = new THREE.Vector3( 0, 0, 1 );
+var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.001, 1e5);
+camera.up = new THREE.Vector3(0, 0, 1);
 camera.position.setX(-6).setY(7).setZ(4.5);
-var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setSize( window.innerWidth, window.innerHeight );
-document.body.appendChild( renderer.domElement );
-// camera.position.z = -2.5;
+var renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
 // Browser camera controls
-controls = new THREE.OrbitControls( camera, renderer.domElement );
+controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 1;
 controls.enableZoom = true;
@@ -48,24 +47,21 @@ controls.minDistance = 0.1;
 // Basic lights
 var ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
-var pointLight = new THREE.PointLight( 0xffffff );
-pointLight.position.set( 0, 0, 100 );
+var pointLight = new THREE.PointLight(0xffffff);
+pointLight.position.set(0, 0, 100);
 pointLight.shadowMapVisible = true;
 scene.add(pointLight)
 
 // Sun 
-var dirLight = new THREE.DirectionalLight( 0xffffff, 0.05 );
-dirLight.position.set( 0, -1, 0 ).normalize();
-scene.add( dirLight );
-dirLight.color.setHSL( 0.1, 0.7, 0.5 );
-addLight( 0.995, 0.5, 0.9, 0, 3e3, 0);
+var dirLight = new THREE.DirectionalLight(0xffffff, 0.05);
+dirLight.position.set(0, -1, 0).normalize();
+scene.add(dirLight);
+dirLight.color.setHSL(0.1, 0.7, 0.5);
+addLight(0.995, 0.5, 0.9, 0, 3e3, 0);
 
 // Add axes
-addAxes( 0.5 );
+addAxes(0.5);
 
-var LCFSDict = {};
-var key;
-fetch('lcfs/A_standard_beta-0.json').then(response => response.json()).then(json => LCFSDict['A_standard_beta-0'] = plotLCFS(json));
 addSTL('stls/aek50_01.stl');
 addLabel('AEK50', 0.5, -6, 2);
 addSTL('stls/aee11_01.stl');
@@ -76,10 +72,21 @@ addSTL('stls/aek10_01.stl');
 addLabel('AEK10', 6, -1.5, 2);
 addSTL('stls/aek41_01.stl');
 addLabel('AEK41', -4.3, -4.3, 2)
+
+var LCFSDict = {};
+var key;
+var currentConfig = 'A_standard_beta-0';
+fetch('lcfs/A_standard_beta-0.json').then(response => response.json()).then(json => LCFSDict[currentConfig] = plotLCFS(json));
+var closestLCFSpoint;
+var closestLCFSpointSphere;
+var Bdirection;
+var Bline;
 var chord;
 var chordLength;
+var angleWithBdeg;
+
 var gui;
-fetch("datGUIconfig.json").then(response => response.json()).then(json => makeGui(json));
+fetch("datGUIconfig.json").then(response => response.json()).then(json => makeGUI(json));
 
 $(window).bind('beforeunload', function(e) {
     // Your code and validation
@@ -90,24 +97,140 @@ $(window).bind('beforeunload', function(e) {
 
 var render = function()
 {
-    requestAnimationFrame( render );
+    requestAnimationFrame(render);
     renderer.render(scene, camera);
 };
 
 render();
 
-function saveConfigToServer()
+function saveDatGUItoServer()
 {
-    $.ajax({
+    console.log('Running method saveDatGUItoServer. This may take a while.');
+    $.ajax(
+    {
         url: "cgi-bin/save.py",
         type: "post",
-        datatype: "json",
+        datatype: "plain",
         data: {text: JSON.stringify(gui.getSaveObject(), undefined, 2)},
-        success: function(response)
+        success: function(response) {console.log(response);}
+    });
+}
+
+function getAngleWithBField(recursing=false)
+{
+    console.log('Running method getAngleWithBField. This may take a while.');
+    
+    if (!closestLCFSpointSphere)
+    {
+        findClosestLCFSpoint();
+        plotClosestLCFSpointSphere();
+    }
+    else if (recursing)
+    {
+        var phi = Math.atan(closestLCFSpoint[1]/closestLCFSpoint[0]);
+        closestLCFSpoint[0] = closestLCFSpoint[0]-0.001*Math.cos(phi);
+        closestLCFSpoint[1] = closestLCFSpoint[1]-0.001*Math.sin(phi);
+    }
+    else 
+        findClosestLCFSpoint();
+    if (Bline)
+        Bline.visible = false;
+    closestLCFSpointSphere.position.set(closestLCFSpoint[0], closestLCFSpoint[1], closestLCFSpoint[2]);
+    
+    $.ajax(
+    {
+        url: "cgi-bin/get_B_field.py",
+        type: "post",
+        datatype: "json",
+        data: {config: currentConfig, 
+               x: closestLCFSpoint[0], 
+               y: closestLCFSpoint[1], 
+               z: closestLCFSpoint[2]},
+        success: function(response) 
                  {
-                     alert("Saved successfully.");
+                     console.log(response.message);
+                     if (response.data[0] == null)
+                     {
+                         console.log("Moving closestLCFSpoint 1 mm radially inwards...");
+                         getAngleWithBField(true);
+                         return;
+                     }
+                     Bdirection = response.data;
+                     vec1 = [endXYZ.x-startXYZ.x, endXYZ.y-startXYZ.y, endXYZ.z-startXYZ.z];
+                     vec2 = [Bdirection[0]-closestLCFSpoint[0], Bdirection[1]-closestLCFSpoint[1], Bdirection[2]-closestLCFSpoint[2]];
+                     angleWithBdeg = angleBetweenVectors(vec1, response.data);
+                     plotBfieldMarker();
                  }
     });
+}
+
+function plotClosestLCFSpointSphere()
+{
+    var geometry = new THREE.SphereGeometry(.02, 32, 32);
+    var material = new THREE.MeshPhongMaterial({color: 0x0000ff});
+    closestLCFSpointSphere = new THREE.Mesh(geometry, material);
+    closestLCFSpointSphere.position.set(closestLCFSpoint[0], closestLCFSpoint[1], closestLCFSpoint[2])
+    scene.add(closestLCFSpointSphere);
+}
+
+function plotBfieldMarker()
+{
+    if (!Bline)
+    {
+        var material = new THREE.LineBasicMaterial({color: 0x0000ff, linewidth: 10});
+
+        var geometry = new THREE.Geometry();
+        geometry.vertices.push(
+                               new THREE.Vector3(closestLCFSpoint[0], closestLCFSpoint[1], closestLCFSpoint[2]),
+                               new THREE.Vector3(closestLCFSpoint[0]+Bdirection[0]/10, 
+                                                 closestLCFSpoint[1]+Bdirection[1]/10, 
+                                                 closestLCFSpoint[2]+Bdirection[2]/10)
+                               );
+
+        Bline = new THREE.Line(geometry, material);
+        scene.add(Bline);
+    }
+    else 
+    {
+        Bline.visible = true;
+        Bline.geometry.vertices[0].x = closestLCFSpoint[0];
+        Bline.geometry.vertices[0].y = closestLCFSpoint[1];
+        Bline.geometry.vertices[0].z = closestLCFSpoint[2];
+        Bline.geometry.vertices[1].x = closestLCFSpoint[0]+Bdirection[0]/10;
+        Bline.geometry.vertices[1].y = closestLCFSpoint[1]+Bdirection[1]/10;
+        Bline.geometry.vertices[1].z = closestLCFSpoint[2]+Bdirection[2]/10;
+        Bline.geometry.verticesNeedUpdate = true;
+    }
+}
+
+function angleBetweenVectors(vec1, vec2)
+{
+    var x1 = vec1[0] ? vec1[0] : vec1.x;
+    var y1 = vec1[1] ? vec1[1] : vec1.y;
+    var z1 = vec1[2] ? vec1[2] : vec1.z;
+    var x2 = vec2[0] ? vec2[0] : vec2.x;
+    var y2 = vec2[1] ? vec2[1] : vec2.y;
+    var z2 = vec2[2] ? vec2[2] : vec2.z;
+    var dot = x1*x2 + y1*y2 + z1*z2;
+    var len1 = Math.sqrt(x1**2 + y1**2 + z1**2);
+    var len2 = Math.sqrt(x2**2 + y2**2 + z2**2);
+    return Math.acos(dot/(len1*len2))*180/Math.PI;
+}
+
+function findClosestLCFSpoint() 
+{
+    closestLCFSdistance = Number.MAX_SAFE_INTEGER;
+    points = LCFSDict[currentConfig].points;
+    for (i in LCFSDict[currentConfig].points)
+    {
+        LCFSdistance = Math.sqrt((endXYZ.x-points[i][0])**2+(endXYZ.y-points[i][1])**2+(endXYZ.z-points[i][2])**2);
+        if (LCFSdistance < closestLCFSdistance)
+        {
+            closestLCFSdistance = LCFSdistance;
+            closestLCFSpoint = points[i];
+        }
+    }
+    return closestLCFSpoint;
 }
 
 function updateChordLength()
@@ -138,13 +261,12 @@ function help()
 
 function updateLCFS(json)
 {
-    for (var keyi in LCFSDict) 
-        if (LCFSDict.hasOwnProperty(keyi)) 
-            LCFSDict[keyi].visible = false;
+    LCFSDict[currentConfig].visible = false;
     LCFSDict[json.name] = plotLCFS(json);
+    currentConfig = json.name;
 }
 
-function makeGui(json) 
+function makeGUI(json) 
 {
     gui = new dat.GUI({load: json});
     gui.remember(this.parent);
@@ -156,12 +278,15 @@ function makeGui(json)
     this.endR = old.endR;
     this.endZ = old.endZ;
     this.endPhi = old.endPhi;
-    this.saveToServer = saveConfigToServer;
+    this.saveToServer = saveDatGUItoServer;
     this.help = help;
     plotChord();
     this.startXYZ = chord.geometry.vertices[0];
     this.endXYZ = chord.geometry.vertices[1];
+    this.getAngleWithB = getAngleWithBField;
     updateChordLength();
+    if (!angleWithBdeg)
+        angleWithBdeg = 0.001;
     
     gui.add(this, "saveToServer");
     gui.add(this, "help");
@@ -180,9 +305,9 @@ function makeGui(json)
                      if (key in LCFSDict)
                      {
                          for (var keyi in LCFSDict) 
-                             if (LCFSDict.hasOwnProperty(keyi)) 
-                                 LCFSDict[keyi].visible = false;
+                         LCFSDict[currentConfig].visible = false;
                          LCFSDict[key].visible = true;
+                         currentConfig = key;
                      }
                      else
                          fetch('lcfs/' + key + '.json').then(response => response.json()).then(json => updateLCFS(json));
@@ -193,53 +318,61 @@ function makeGui(json)
     controlsFolder.add(controls, "rotateSpeed", 0.05, 1.0, 0.05);
 
     var startFolder = gui.addFolder('Start');
-    startFolder.add(this, "startR", 4.0, 7.0, 0.001).onChange(function(r) 
-                                                              {
-                                                                  startXYZ.x = r*Math.cos(startPhi);
-                                                                  startXYZ.y = r*Math.sin(startPhi);
-                                                                  chord.geometry.verticesNeedUpdate = true;
-                                                                  updateChordLength();
-                                                              });
-    startFolder.add(this, "startZ", -2.0, 2.0, 0.001).onChange(function(z) 
-                                                               {
-                                                                   startXYZ.z = z;
-                                                                   chord.geometry.verticesNeedUpdate = true;
-                                                                   updateChordLength();
-                                                               });
-    startFolder.add(this, "startPhi", 0, 2*Math.PI, 0.001).onChange(function(phi) 
-                                                                    {
-                                                                        startXYZ.x = startR*Math.cos(phi);
-                                                                        startXYZ.y = startR*Math.sin(phi);
-                                                                        chord.geometry.verticesNeedUpdate = true;
-                                                                        updateChordLength();
-                                                                    });
+    startFolder.add(this, "startR", 4.0, 7.0, 0.001)
+               .onChange(function(r) 
+                         {
+                             startXYZ.x = r*Math.cos(startPhi);
+                             startXYZ.y = r*Math.sin(startPhi);
+                             chord.geometry.verticesNeedUpdate = true;
+                             updateChordLength();
+                         });
+    startFolder.add(this, "startZ", -2.0, 2.0, 0.001)
+               .onChange(function(z) 
+                         {
+                             startXYZ.z = z;
+                             chord.geometry.verticesNeedUpdate = true;
+                             updateChordLength();
+                         });
+    startFolder.add(this, "startPhi", 0, 2*Math.PI, 0.001)
+               .onChange(function(phi) 
+                         {
+                             startXYZ.x = startR*Math.cos(phi);
+                             startXYZ.y = startR*Math.sin(phi);
+                             chord.geometry.verticesNeedUpdate = true;
+                             updateChordLength();
+                         });
 
     var endFolder = gui.addFolder('End');
-    endFolder.add(this, "endR", 4.0, 7.0, 0.001).onChange(function(r) 
-                                                          {
-                                                              endXYZ.x = r*Math.cos(endPhi);
-                                                              endXYZ.y = r*Math.sin(endPhi);
-                                                              chord.geometry.verticesNeedUpdate = true;
-                                                              updateChordLength();
-                                                          });
-    endFolder.add(this, "endZ", -2.0, 2.0, 0.001).onChange(function(z) 
-                                                           {
-                                                               endXYZ.z = z;
-                                                               chord.geometry.verticesNeedUpdate = true
-                                                               updateChordLength();
-                                                           });
-    endFolder.add(this, "endPhi", 0, 2*Math.PI, 0.001).onChange(function(phi) 
-                                                                {
-                                                                    endXYZ.x = endR*Math.cos(phi);
-                                                                    endXYZ.y = endR*Math.sin(phi);
-                                                                    chord.geometry.verticesNeedUpdate = true;
-                                                                    updateChordLength();
-                                                                });
+    endFolder.add(this, "endR", 4.0, 7.0, 0.001)
+             .onChange(function(r) 
+                       {
+                           endXYZ.x = r*Math.cos(endPhi);
+                           endXYZ.y = r*Math.sin(endPhi);
+                           chord.geometry.verticesNeedUpdate = true;
+                           updateChordLength();
+                       });
+    endFolder.add(this, "endZ", -2.0, 2.0, 0.001)
+             .onChange(function(z) 
+                       {
+                           endXYZ.z = z;
+                           chord.geometry.verticesNeedUpdate = true
+                           updateChordLength();
+                       });
+    endFolder.add(this, "endPhi", 0, 2*Math.PI, 0.001)
+             .onChange(function(phi) 
+                       {
+                           endXYZ.x = endR*Math.cos(phi);
+                           endXYZ.y = endR*Math.sin(phi);
+                           chord.geometry.verticesNeedUpdate = true;
+                           updateChordLength();
+                       });
     
     var chordFolder = gui.addFolder('Chord')
     chordFolder.add(this, "chordLength").listen();
     updateChordLength();
-
+    chordFolder.add(this, "getAngleWithB");
+    chordFolder.add(this, "angleWithBdeg").listen();
+    
     controlsFolder.open();
     startFolder.open();
     endFolder.open();
@@ -248,10 +381,7 @@ function makeGui(json)
 
 function plotChord()
 {
-    var material = new THREE.LineBasicMaterial({
-        color: 0xff0000,
-        linewidth: 10 
-    });
+    var material = new THREE.LineBasicMaterial({color: 0xff0000, linewidth: 10});
 
     var geometry = new THREE.Geometry();
     geometry.vertices.push(
@@ -259,14 +389,16 @@ function plotChord()
         new THREE.Vector3(endR*Math.cos(endPhi), endR*Math.sin(endPhi), endZ)
     );
 
-    chord = new THREE.Line( geometry, material );
-    scene.add( chord );
+    chord = new THREE.Line(geometry, material);
+    scene.add(chord);
 }
 
 function plotLCFS(input)
 {
     var LCFS = new THREE.Object3D();
-    var mat = new THREE.LineBasicMaterial({ linewidth: 3, color: 0x000, transparent: true, opacity: 0.2 });
+    LCFS.points = [];
+    var mat1 = new THREE.LineBasicMaterial({linewidth: 3, color: 0xff9999, transparent: true, opacity: 0.3});
+    var mat2 = new THREE.LineBasicMaterial({linewidth: 3, color: 0x99ddff, transparent: true, opacity: 0.3});
     var lcfs_x = Array(80*252);
     var lcfs_y = Array(80*252);
     var lcfs_z = input.z;
@@ -277,15 +409,16 @@ function plotLCFS(input)
             lcfs_x[i*80+j] = input.r[i*80+j]*Math.cos(input.phi[i]);
             lcfs_y[i*80+j] = input.r[i*80+j]*Math.sin(input.phi[i]);
             geom.vertices.push(new THREE.Vector3(lcfs_x[i*80+j], lcfs_y[i*80+j], lcfs_z[i*80+j]));
+            LCFS.points.push([lcfs_x[i*80+j], lcfs_y[i*80+j], lcfs_z[i*80+j]]);
         }
-        LCFS.add(new THREE.Line( geom, mat, THREE.LineSegments ));
+        LCFS.add(new THREE.Line(geom, mat1, THREE.LineSegments));
     }
     for (i = 0; i < 79; i++) {
         var geom = new THREE.Geometry();
         for (j = 0; j < 252; j++) 
             geom.vertices.push(new THREE.Vector3(lcfs_x[i+j*80], lcfs_y[i+j*80], lcfs_z[i+j*80]));
-        geom.vertices.push(new THREE.Vector3(lcfs_x[i], lcfs_y[i], lcfs_z[i]))
-        LCFS.add(new THREE.Line( geom, mat, THREE.LineSegments ));
+        geom.vertices.push(new THREE.Vector3(lcfs_x[i], lcfs_y[i], lcfs_z[i]));
+        LCFS.add(new THREE.Line(geom, mat2, THREE.LineSegments));
     }
     scene.add(LCFS);
     return LCFS;
@@ -301,15 +434,15 @@ function getLookAtVector(controls)
 function addSTL(filename)
 {
     var loader = new THREE.STLLoader();
-    loader.load( filename, function ( geometry ) {
+    loader.load(filename, function (geometry) {
         // Create ISS material, rotate, and position
-        var STLMaterial = new THREE.MeshPhongMaterial( { color: 0x999999, specular: 0xfff, shininess: 50, side: THREE.DoubleSide } );
-        var STL = new THREE.Mesh( geometry, STLMaterial );
-        STL.scale.set( 0.001, 0.001, 0.001 );
+        var STLMaterial = new THREE.MeshLambertMaterial({ color: 0x999999, specular: 0xfff, shininess: 50, side: THREE.DoubleSide });
+        var STL = new THREE.Mesh(geometry, STLMaterial);
+        STL.scale.set(0.001, 0.001, 0.001);
         STL.castShadow = true;
         STL.receiveShadow = true;
         scene.add(STL);
-    } );
+    });
 }
 
 function addLabel(text, x, y, z, color) 
@@ -326,43 +459,43 @@ function addLabel(text, x, y, z, color)
     scene.add(sprite);
 }
 
-function addAxes( length )
+function addAxes(length)
 {
     var axes = new THREE.Object3D();
-    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( length, 0, 0 ), 0x000, false ) ); // +X
-    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( -length, 0, 0 ), 0x000, true) ); // -X
-    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, length, 0 ), 0x000, false ) ); // +Y
-    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, -length, 0 ), 0x000, true ) ); // -Y
-    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, length ), 0x000, false ) ); // +Z
-    axes.add( axis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, -length ), 0x000, true ) ); // -Z
-    addLabel( 'x', 1.2*length, 0, 0 );
-    addLabel( 'y', 0, 1.2*length, 0 );
-    addLabel( 'z', 0, 0, 1.2*length );
+    axes.add(axis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(length, 0, 0), 0x000, false)); 
+    axes.add(axis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(-length, 0, 0), 0x000, true));
+    axes.add(axis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, length, 0), 0x000, false));
+    axes.add(axis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -length, 0), 0x000, true));
+    axes.add(axis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, length), 0x000, false));
+    axes.add(axis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -length), 0x000, true));
+    addLabel('x', 1.2*length, 0, 0);
+    addLabel('y', 0, 1.2*length, 0);
+    addLabel('z', 0, 0, 1.2*length);
     scene.add(axes);
 }
 
-function axis( src, dst, colorHex, dashed )
+function axis(src, dst, colorHex, dashed)
 {
     var geom = new THREE.Geometry(),
         mat;
     if(dashed) {
-        mat = new THREE.LineDashedMaterial({ linewidth: 3, color: colorHex, dashSize: 0.1, gapSize: 0.1, transparent: true, opacity: 0.4 });
+        mat = new THREE.LineDashedMaterial({linewidth: 3, color: colorHex, dashSize: 0.1, gapSize: 0.1, transparent: true, opacity: 0.4});
     } else {
-        mat = new THREE.LineBasicMaterial({ linewidth: 3, color: colorHex, transparent: true, opacity: 0.4 });
+        mat = new THREE.LineBasicMaterial({linewidth: 3, color: colorHex, transparent: true, opacity: 0.4});
     }
-    geom.vertices.push( src.clone() );
-    geom.vertices.push( dst.clone() );
+    geom.vertices.push(src.clone());
+    geom.vertices.push(dst.clone());
     geom.computeLineDistances(); // This one is SUPER important, otherwise dashed lines will appear as simple plain lines
-    var axis = new THREE.Line( geom, mat, THREE.LineSegments );
+    var axis = new THREE.Line(geom, mat, THREE.LineSegments);
     return axis;
 }
 
-function addLight( h, s, l, x, y, z )
+function addLight(h, s, l, x, y, z)
 {
-    var light = new THREE.PointLight( 0xffffff, 1.5, 2000 );
-    light.color.setHSL( h, s, l );
-    light.position.set( x, y, z );
-    scene.add( light );
+    var light = new THREE.PointLight(0xffffff, 1.5, 2000);
+    light.color.setHSL(h, s, l);
+    light.position.set(x, y, z);
+    scene.add(light);
 }
 </script>
 </body>
