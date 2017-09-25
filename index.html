@@ -67,6 +67,7 @@ addSTL('stls/aek41_01.stl');
 addLabel('AEK41', -4.3, -4.3, 2)
 
 var LCFSDict = {};
+var LCFSr, LCFSz, LCFSphi;
 var key;
 var currentConfig = 'A_standard_beta-0';
 fetch('lcfs/A_standard_beta-0.json').then(response => response.json()).then(json => LCFSDict[currentConfig] = plotLCFS(json));
@@ -298,7 +299,7 @@ function makeGUI(json)
                      if (key in LCFSDict)
                      {
                          for (var keyi in LCFSDict) 
-                         LCFSDict[currentConfig].visible = false;
+                             LCFSDict[currentConfig].visible = false;
                          LCFSDict[key].visible = true;
                          currentConfig = key;
                      }
@@ -390,12 +391,12 @@ function plotLCFS(input)
 {
     var LCFS = new THREE.Object3D();
     LCFS.points = [];
-    var mat1 = new THREE.LineBasicMaterial({linewidth: 3, color: 0xff9999, transparent: true, opacity: 0.3});
-    var mat2 = new THREE.LineBasicMaterial({linewidth: 3, color: 0x99ddff, transparent: true, opacity: 0.3});
+    var mat = new THREE.LineBasicMaterial({linewidth: 3, color: 0xfff, transparent: true, opacity: 0.3});
     var lcfs_x = Array(80*252);
     var lcfs_y = Array(80*252);
     var lcfs_z = input.z;
-    for (i = 0; i < 252; i++) {
+    for (i = 0; i < 252; i++) 
+    {
         var geom = new THREE.Geometry();
         for (j = 0; j < 80; j++) 
         {
@@ -404,17 +405,35 @@ function plotLCFS(input)
             geom.vertices.push(new THREE.Vector3(lcfs_x[i*80+j], lcfs_y[i*80+j], lcfs_z[i*80+j]));
             LCFS.points.push([lcfs_x[i*80+j], lcfs_y[i*80+j], lcfs_z[i*80+j]]);
         }
-        LCFS.add(new THREE.Line(geom, mat1, THREE.LineSegments));
+        LCFS.add(new THREE.Line(geom, mat, THREE.LineSegments));
     }
-    for (i = 0; i < 79; i++) {
+    for (i = 0; i < 79; i++) 
+    {
         var geom = new THREE.Geometry();
         for (j = 0; j < 252; j++) 
             geom.vertices.push(new THREE.Vector3(lcfs_x[i+j*80], lcfs_y[i+j*80], lcfs_z[i+j*80]));
         geom.vertices.push(new THREE.Vector3(lcfs_x[i], lcfs_y[i], lcfs_z[i]));
-        LCFS.add(new THREE.Line(geom, mat2, THREE.LineSegments));
+        LCFS.add(new THREE.Line(geom, mat, THREE.LineSegments));
     }
+    LCFSr = input.r;
+    LCFSz = input.z;
+    LCFSphi = input.phi;
+    var geometry = new THREE.ParametricGeometry(parametricLCFS, 252, 80);
+    var material = new THREE.MeshPhongMaterial({color: 0x156289, emissive: 0x072534,
+                                                transparent: true, opacity: 0.5});
+    LCFS.add(new THREE.Mesh(geometry, material));
     scene.add(LCFS);
     return LCFS;
+}
+
+function parametricLCFS(u, v)
+{
+    u = (u*252)%252;
+    v = (v*80)%80;
+    var r = LCFSr[v+u*80];
+    var z = LCFSz[v+u*80];
+    var phi = LCFSphi[u];
+    return new THREE.Vector3(r*Math.cos(phi), r*Math.sin(phi), z);
 }
 
 function getLookAtVector(controls)
@@ -429,7 +448,7 @@ function addSTL(filename)
     var loader = new THREE.STLLoader();
     loader.load(filename, function (geometry) {
         // Create ISS material, rotate, and position
-        var STLMaterial = new THREE.MeshLambertMaterial({ color: 0x888888, specular: 0xfff, shininess: 50, side: THREE.DoubleSide });
+        var STLMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, specular: 0xfff, shininess: 50, side: THREE.DoubleSide });
         var STL = new THREE.Mesh(geometry, STLMaterial);
         STL.scale.set(0.001, 0.001, 0.001);
         STL.castShadow = true;
