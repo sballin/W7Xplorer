@@ -20,6 +20,6 @@ if not diff:
     diff = 'Save completed succesfully but no real changes were made.'
 
 sys.stdout.write('Content-Type: application/plain\n\n')
-sys.stdout.write('Comparison of backed up settings and most recently saved settings:\n\n{}'.format(diff))
+sys.stdout.write('Save completed successfully. Comparison of backed up settings and most recently saved settings:\n\n{}'.format(diff))
 sys.stdout.write('\n')
 sys.stdout.close()

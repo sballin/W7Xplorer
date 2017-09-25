@@ -52,13 +52,6 @@ pointLight.position.set(0, 0, 100);
 pointLight.shadowMapVisible = true;
 scene.add(pointLight)
 
-// Sun 
-var dirLight = new THREE.DirectionalLight(0xffffff, 0.05);
-dirLight.position.set(0, -1, 0).normalize();
-scene.add(dirLight);
-dirLight.color.setHSL(0.1, 0.7, 0.5);
-addLight(0.995, 0.5, 0.9, 0, 3e3, 0);
-
 // Add axes
 addAxes(0.5);
 
@@ -436,7 +429,7 @@ function addSTL(filename)
     var loader = new THREE.STLLoader();
     loader.load(filename, function (geometry) {
         // Create ISS material, rotate, and position
-        var STLMaterial = new THREE.MeshLambertMaterial({ color: 0x999999, specular: 0xfff, shininess: 50, side: THREE.DoubleSide });
+        var STLMaterial = new THREE.MeshLambertMaterial({ color: 0x888888, specular: 0xfff, shininess: 50, side: THREE.DoubleSide });
         var STL = new THREE.Mesh(geometry, STLMaterial);
         STL.scale.set(0.001, 0.001, 0.001);
         STL.castShadow = true;
@@ -488,14 +481,6 @@ function axis(src, dst, colorHex, dashed)
     geom.computeLineDistances(); // This one is SUPER important, otherwise dashed lines will appear as simple plain lines
     var axis = new THREE.Line(geom, mat, THREE.LineSegments);
     return axis;
-}
-
-function addLight(h, s, l, x, y, z)
-{
-    var light = new THREE.PointLight(0xffffff, 1.5, 2000);
-    light.color.setHSL(h, s, l);
-    light.position.set(x, y, z);
-    scene.add(light);
 }
 </script>
 </body>
