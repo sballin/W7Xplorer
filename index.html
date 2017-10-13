@@ -89,6 +89,17 @@ $(window).bind('beforeunload', function(e) {
     }
 });
 
+var configDict = {'A_standard_beta-0':        '1000_1000_1000_1000_+0000_+0000/01/00jh_l/',
+                  'A_standard_beta-0.056':    '1000_1000_1000_1000_+0000_+0000/01/32/',
+                  'B-low-iota_beta-0':        '1000_1000_1000_1000_+0750_+0750/01/00/',
+                  'B_low-iota_beta-0.021':    '1000_1000_1000_1000_+0750_+0750/01/10ss/',
+                  'C_high-iota_beta-0':       '1000_1000_1000_1000_-0690_-0690/01/00/',
+                  'C_high-iota_beta-0.021':   '1000_1000_1000_1000_-0690_-0690/01/10s/',
+                  'D_low-mirror_beta-0':      '1042_1042_1127_1127_+0000_+0000/01/00/',
+                  'D_low-mirror_beta-0.043':  '1042_1042_1127_1127_+0000_+0000/01/20/',
+                  'E_high-mirror_beta-0':     '0972_0926_0880_0852_+0000_+0000/01/00jh/',
+                  'E_high-mirror_beta-0.053': '0972_0926_0880_0852_+0000_+0000/01/24a/'}
+
 var render = function()
 {
     requestAnimationFrame(render);
@@ -112,7 +123,7 @@ function saveDatGUItoServer()
 
 function getAngleWithBField(recursing=false)
 {
-    console.log('Running method getAngleWithBField. This may take a while.');
+    console.log('Running method getAngleWithBField. Make sure you\'re connected to the IPP VPN!');
     
     if (!closestLCFSpointSphere)
     {
@@ -131,31 +142,26 @@ function getAngleWithBField(recursing=false)
         Bline.visible = false;
     closestLCFSpointSphere.position.set(closestLCFSpoint[0], closestLCFSpoint[1], closestLCFSpoint[2]);
     
-    $.ajax(
-    {
-        url: "cgi-bin/get_B_field.py",
-        type: "post",
-        datatype: "json",
-        data: {config: currentConfig, 
-               x: closestLCFSpoint[0], 
-               y: closestLCFSpoint[1], 
-               z: closestLCFSpoint[2]},
-        success: function(response) 
-                 {
-                     console.log(response.message);
-                     if (response.data[0] == null)
-                     {
-                         console.log("Moving closestLCFSpoint 1 mm radially inwards...");
-                         getAngleWithBField(true);
-                         return;
-                     }
-                     Bdirection = response.data;
-                     vec1 = [endXYZ.x-startXYZ.x, endXYZ.y-startXYZ.y, endXYZ.z-startXYZ.z];
-                     vec2 = [Bdirection[0]-closestLCFSpoint[0], Bdirection[1]-closestLCFSpoint[1], Bdirection[2]-closestLCFSpoint[2]];
-                     angleWithBdeg = angleBetweenVectors(vec1, response.data);
-                     plotBfieldMarker();
-                 }
-    });
+    fetch('http://svvmec1.ipp-hgw.mpg.de:8080/vmecrest/v1/geiger/w7x/' + configDict[currentConfig] 
+          + 'magneticfield.json?x=' + closestLCFSpoint[0] + '&y=' + closestLCFSpoint[1] + '&z=' 
+          + closestLCFSpoint[2])
+    .then(response => response.json())
+    .then(json => handleBfieldFetch(json));
+}
+
+function handleBfieldFetch(json)
+{
+        if (json.magneticField.Bx[0] == null)
+        {
+            console.log("Moving closestLCFSpoint 1 mm radially inwards...");
+            getAngleWithBField(true);
+            return;
+        }
+        Bdirection = [json.magneticField.Bx[0], json.magneticField.By[0], json.magneticField.Bz[0]];
+        vec1 = [endXYZ.x-startXYZ.x, endXYZ.y-startXYZ.y, endXYZ.z-startXYZ.z];
+        vec2 = [Bdirection[0]-closestLCFSpoint[0], Bdirection[1]-closestLCFSpoint[1], Bdirection[2]-closestLCFSpoint[2]];
+        angleWithBdeg = angleBetweenVectors(vec1, Bdirection);
+        plotBfieldMarker();
 }
 
 function plotClosestLCFSpointSphere()
