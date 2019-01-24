@@ -44,7 +44,22 @@ def saveDivertorJson():
             data = json.loads(url.read().decode())
         with open(f'divertor/{component_id}.json', 'w') as f:
             f.write(json.dumps(data))
+            
+            
+def saveMagneticAxis():
+    r = []
+    z = []
+    for i in range(360):
+        with urllib.request.urlopen(f'http://svvmec1.ipp-hgw.mpg.de:8080/vmecrest/v1/geiger/w7x/1000_1000_1000_1000_+0000_+0000/01/00/magneticaxis.json?phi={i}') as url:
+            data = json.loads(url.read().decode())
+            r.append(data['magneticAxis']['x1'])
+            z.append(data['magneticAxis']['x3'])
+    out = {}
+    out['r'] = r
+    out['z'] = z
+    with open('magnetic_axis.json', 'w') as f:
+        f.write(json.dumps(out))
 
 
 if __name__ == '__main__':
-    saveDivertorJson()
+    saveMagneticAxis()

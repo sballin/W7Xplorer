@@ -31,7 +31,7 @@
     var scene = new THREE.Scene();
     var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 1e5);
     camera.up = new THREE.Vector3(0, 0, 1);
-    camera.position.setX(0).setY(0).setZ(9);
+    camera.position.setX(0).setY(0).setZ(7);
     camera.setFocalLength(11.057);
     var renderer = new THREE.WebGLRenderer(
     {
@@ -40,7 +40,6 @@
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio ? window.devicePixelRatio : 1);
-    renderer.sortObjects = false;
     document.body.appendChild(renderer.domElement);
 
     // Browser camera controls
@@ -60,30 +59,47 @@
     scene.add(pointLight);
 
     // Add axes
-    // addAxes(0.5);
+    addAxes(0.5);
 
     var spotLight = new THREE.SpotLight(0x000000);
-    spotLight.angle = 0.2;
+    spotLight.angle = 0.1;
     var target = new THREE.Object3D();
     spotLight.position.set(-4.9499, 3.96425, -0.6451);
     scene.add(spotLight);
     target.position.set(1.5382, 6.0620, 0.6750);
     scene.add(target);
     spotLight.target = target;
-    spotLight.distance = 5.25;
+    spotLight.distance = 5.2;
     spotLight.target.updateMatrixWorld();
 
     var spotLightHelper = new THREE.SpotLightHelper(spotLight);
     scene.add(spotLightHelper);
 
+    addDivertor();
+    var ids = [341];
+    for (var idi in ids)
+        addComponentById(ids[idi]);    
+    
+    var geom = new THREE.Geometry();
+    var src = new THREE.Vector3(0, 0, 0);
+    var r = 10;
+    var phi = 1.875;
+    var dst = new THREE.Vector3(r*Math.cos(phi), r*Math.sin(phi), 0);
+    var mat = new THREE.LineBasicMaterial(
+    {
+        linewidth: 1,
+        color: 0x000,
+    });
+    geom.vertices.push(src.clone());
+    geom.vertices.push(dst.clone());
+    var line = new THREE.Line(geom, mat, THREE.LineSegments);
+    scene.add(line);
 
     var LCFSDict = {};
     var LCFSr, LCFSz, LCFSphi;
     var key;
     var currentConfig = 'A_standard_beta-0';
     fetch('lcfs/A_standard_beta-0.json').then(response => response.json()).then(json => LCFSDict[currentConfig] = plotLCFS(json));
-    addDivertor();
-    
     var closestLCFSpoint;
     var closestLCFSpointSphere;
     var Bdirection;
@@ -91,19 +107,6 @@
     var chord;
     var chordLength;
     var angleWithBdeg;
-
-    var configDict = {
-        'A_standard_beta-0': '1000_1000_1000_1000_+0000_+0000/01/00jh_l/',
-        'A_standard_beta-0.056': '1000_1000_1000_1000_+0000_+0000/01/32/',
-        'B-low-iota_beta-0': '1000_1000_1000_1000_+0750_+0750/01/00/',
-        'B_low-iota_beta-0.021': '1000_1000_1000_1000_+0750_+0750/01/10ss/',
-        'C_high-iota_beta-0': '1000_1000_1000_1000_-0690_-0690/01/00/',
-        'C_high-iota_beta-0.021': '1000_1000_1000_1000_-0690_-0690/01/10s/',
-        'D_low-mirror_beta-0': '1042_1042_1127_1127_+0000_+0000/01/00/',
-        'D_low-mirror_beta-0.043': '1042_1042_1127_1127_+0000_+0000/01/20/',
-        'E_high-mirror_beta-0': '0972_0926_0880_0852_+0000_+0000/01/00jh/',
-        'E_high-mirror_beta-0.053': '0972_0926_0880_0852_+0000_+0000/01/24a/'
-    };
 
     var render = function()
     {
@@ -152,15 +155,12 @@
         geometry4.faces = faces;
         geometry4.computeFaceNormals();
 
-        var material3 = new THREE.MeshStandardMaterial(
+        var material3 = new THREE.MeshLambertMaterial(
         {
-            color: 0x666666,
+            color: 0x555555,
             side: THREE.DoubleSide,
             transparent: true,
-            opacity: 0.7,
-            flatShading: false,
-            metalness: 0.5,
-            roughness: 0.5
+            opacity: 0.5
         });
         var line4 = new THREE.Mesh(geometry4, material3);
         //line4.name = id.toString();
@@ -268,8 +268,8 @@
                 geom.vertices.push(new THREE.Vector3(lcfs_x[i * 80 + j], lcfs_y[i * 80 + j], lcfs_z[i * 80 + j]));
                 LCFS.points.push([lcfs_x[i * 80 + j], lcfs_y[i * 80 + j], lcfs_z[i * 80 + j]]);
             }
-            //if (i % 25 == 0)
-            //    LCFS.add(new THREE.Line(geom, mat, THREE.LineSegments));
+            if (i % 25 == 0) // 252 phi segments divided by 10=sum(beans + triangles)
+                LCFS.add(new THREE.Line(geom, mat, THREE.LineSegments));
         }
         for (i = 0; i < 79; i++)
         {
@@ -282,52 +282,10 @@
         LCFSr = input.r;
         LCFSz = input.z;
         LCFSphi = input.phi;
-        var geometry = new THREE.ParametricGeometry(parametricLCFS, 252, 80);
-        var material = new THREE.MeshPhongMaterial(
-        {color: 0x156289, emissive: 0x072534,
-                                                transparent: true, opacity: 0.8});
-        LCFS.add(new THREE.Mesh(geometry, material));
         scene.add(LCFS);
         return LCFS;
     }
-
-    function parametricLCFS(u, v)
-    {
-        u = (u * 252) % 252;
-        v = (v * 80) % 80;
-        var r = LCFSr[v + u * 80];
-        var z = LCFSz[v + u * 80];
-        var phi = LCFSphi[u];
-        return new THREE.Vector3(r * Math.cos(phi), r * Math.sin(phi), z);
-    }
-
-    function getLookAtVector(controls)
-    {
-        var phi = controls.getAzimuthalAngle();
-        var theta = controls.getPolarAngle();
-        return new THREE.Vector3(-Math.sin(theta) * Math.sin(phi), -Math.cos(theta), -Math.sin(theta) * Math.cos(phi));
-    }
-
-    function addSTL(filename)
-    {
-        var loader = new THREE.STLLoader();
-        loader.load(filename, function(geometry)
-        {
-            var STLMaterial = new THREE.MeshPhongMaterial(
-            {
-                color: 0x888888,
-                specular: 0xfff,
-                shininess: 50,
-                side: THREE.DoubleSide
-            });
-            var STL = new THREE.Mesh(geometry, STLMaterial);
-            STL.scale.set(0.001, 0.001, 0.001);
-            STL.castShadow = true;
-            STL.receiveShadow = true;
-            scene.add(STL);
-        });
-    }
-
+    
     function addLabel(text, x, y, z, color)
     {
         let sprite = new THREE.TextSprite(

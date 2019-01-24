@@ -104,9 +104,24 @@
         'E_high-mirror_beta-0': '0972_0926_0880_0852_+0000_+0000/01/00jh/',
         'E_high-mirror_beta-0.053': '0972_0926_0880_0852_+0000_+0000/01/24a/'
     };
+    
+    var radius = 3;
+    var elapsedTime = 0;
+    var constant = 0.005;
+    var pathDistance = 0.25;
+    var coordinateOrigin = new THREE.Vector3(-4.9499+pathDistance*(1.5382+4.9499), 
+                                             3.96425+pathDistance*(6.0620-3.96425), 
+                                             -0.6451+pathDistance*(0.6750+0.6451));
+    camera.position.z = 2;
 
     var render = function()
     {
+        // Uncontrollable rotating camera
+        camera.position.x = coordinateOrigin.x - radius * Math.pow(Math.cos( constant * elapsedTime ),2);         
+        camera.position.y = coordinateOrigin.y - radius * Math.pow(Math.sin( constant * elapsedTime ),2);
+        camera.lookAt( coordinateOrigin );
+        elapsedTime += 1;
+        
         requestAnimationFrame(render);
         renderer.render(scene, camera);
     };
