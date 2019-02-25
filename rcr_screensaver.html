@@ -1,10 +1,11 @@
 <html>
 
 <head>
-    <title>w7xplorer</title>
+    <title>RCR screensaver</title>
     <style>
     body {
         margin: 0;
+        background-color: #000000;
     }
 
     canvas {
@@ -17,22 +18,32 @@
         text-align: left;
     }
     </style>
-    <script src="js/three.min.js"></script>
+    <script src="js/three.js"></script>
     <script src="js/STLLoader.js"></script>
     <script src="js/OrbitControls.js"></script>
     <script src="js/THREE.TextSprite.js"></script>
     <script src="js/THREE.TextTexture.min.js"></script>
     <script src="js/jquery.min.js"></script>
+    
+    <script src="js/postprocessing/EffectComposer.js"></script>
+    <script src="js/postprocessing/RenderPass.js"></script>
+    <script src="js/postprocessing/ShaderPass.js"></script>
+    <script src="js/shaders/CopyShader.js"></script>
+    <script src="js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="js/postprocessing/UnrealBloomPass.js"></script>
 </head>
 
 <body>
     <script>
+    var clock = new THREE.Clock();
     // Initialize scene and renderer
     var scene = new THREE.Scene();
+    scene.background = new THREE.Color( 0x000000 );
     var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 1e5);
     camera.up = new THREE.Vector3(0, 0, 1);
     camera.position.setX(0).setY(0).setZ(9);
     camera.setFocalLength(11.057);
+    var origin = new THREE.Vector3(0,0,0);
     var renderer = new THREE.WebGLRenderer(
     {
         antialias: true,
@@ -41,8 +52,22 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio ? window.devicePixelRatio : 1);
     renderer.sortObjects = false;
+    renderer.toneMapping = THREE.ReinhardToneMapping;
+    renderer.toneMappingExposure = Math.pow( 1.1, 4.0 );
     document.body.appendChild(renderer.domElement);
 
+    // Bloom
+    var renderScene = new THREE.RenderPass( scene, camera );
+    var bloomPass = new THREE.UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
+    bloomPass.renderToScreen = true;
+    bloomPass.threshold = 0.20;
+    bloomPass.strength = 7;
+    bloomPass.radius = 0;
+    composer = new THREE.EffectComposer( renderer );
+    composer.setSize( window.innerWidth, window.innerHeight );
+    composer.addPass( renderScene );
+    composer.addPass( bloomPass );
+    
     // Browser camera controls
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -50,89 +75,88 @@
     controls.enableZoom = true;
     controls.maxDistance = 20;
     controls.minDistance = 0.1;
-
+    
     // Basic lights
-    var ambientLight = new THREE.AmbientLight(0xffffff);
+    var ambientLight = new THREE.AmbientLight(0xffffff, 1);
     scene.add(ambientLight);
-    var pointLight = new THREE.PointLight(0xffffff);
+    var pointLight = new THREE.PointLight(0xffffff, 1);
     pointLight.position.set(0, 0, 100);
     pointLight.shadowMapVisible = true;
     scene.add(pointLight);
-
-    // Add axes
-    // addAxes(0.5);
-
-    var spotLight = new THREE.SpotLight(0x000000);
-    spotLight.angle = 0.2;
-    var target = new THREE.Object3D();
-    spotLight.position.set(-4.9499, 3.96425, -0.6451);
-    scene.add(spotLight);
-    target.position.set(1.5382, 6.0620, 0.6750);
-    scene.add(target);
-    spotLight.target = target;
-    spotLight.distance = 5.25;
-    spotLight.target.updateMatrixWorld();
-
-    var spotLightHelper = new THREE.SpotLightHelper(spotLight);
-    scene.add(spotLightHelper);
-
-
+    
+    // LCFS
     var LCFSDict = {};
     var LCFSr, LCFSz, LCFSphi;
-    var key;
     var currentConfig = 'A_standard_beta-0';
-    fetch('lcfs/A_standard_beta-0.json').then(response => response.json()).then(json => LCFSDict[currentConfig] = plotLCFS(json));
-    addDivertor();
+    var map = new THREE.TextureLoader().load( 'assets/textures/metal_iota_1_darkestest.png' );
+    map.wrapS = map.wrapT = THREE.RepeatWrapping;
+    map.anisotropy = 16;
+    fetch('assets/lcfs/A_standard_beta-0.json').then(response => response.json()).then(json => LCFSDict[currentConfig] = plotLCFS(json));
     
-    var closestLCFSpoint;
-    var closestLCFSpointSphere;
-    var Bdirection;
-    var Bline;
-    var chord;
-    var chordLength;
-    var angleWithBdeg;
-
-    var configDict = {
-        'A_standard_beta-0': '1000_1000_1000_1000_+0000_+0000/01/00jh_l/',
-        'A_standard_beta-0.056': '1000_1000_1000_1000_+0000_+0000/01/32/',
-        'B-low-iota_beta-0': '1000_1000_1000_1000_+0750_+0750/01/00/',
-        'B_low-iota_beta-0.021': '1000_1000_1000_1000_+0750_+0750/01/10ss/',
-        'C_high-iota_beta-0': '1000_1000_1000_1000_-0690_-0690/01/00/',
-        'C_high-iota_beta-0.021': '1000_1000_1000_1000_-0690_-0690/01/10s/',
-        'D_low-mirror_beta-0': '1042_1042_1127_1127_+0000_+0000/01/00/',
-        'D_low-mirror_beta-0.043': '1042_1042_1127_1127_+0000_+0000/01/20/',
-        'E_high-mirror_beta-0': '0972_0926_0880_0852_+0000_+0000/01/00jh/',
-        'E_high-mirror_beta-0.053': '0972_0926_0880_0852_+0000_+0000/01/24a/'
-    };
+    var bg = new THREE.TextureLoader().load( 'assets/textures/gradient.png' );
+    // bg.wrapS = map.wrapT = THREE.SphericalReflectionMapping;
+    // bg.anisotropy = 16;
+    var backgroundSphere  = new THREE.SphereGeometry(30, 60, 60);
+    var material = new THREE.MeshBasicMaterial({map: bg, side: THREE.BackSide});
+    scene.add(new THREE.Mesh(backgroundSphere, material));
+    backgroundSphere.rotateX(Math.PI/2); // for seams to be at top and bottom of scene
     
-    var radius = 3;
-    var elapsedTime = 0;
-    var constant = 0.005;
-    var pathDistance = 0.25;
-    var coordinateOrigin = new THREE.Vector3(-4.9499+pathDistance*(1.5382+4.9499), 
-                                             3.96425+pathDistance*(6.0620-3.96425), 
-                                             -0.6451+pathDistance*(0.6750+0.6451));
-    camera.position.z = 2;
-
+    var backgroundSphere  = new THREE.SphereGeometry(30, 60, 60);
+    var material = new THREE.MeshBasicMaterial({map: bg, side: THREE.BackSide});
+    scene.add(new THREE.Mesh(backgroundSphere, material));
+    backgroundSphere.rotateX(Math.PI/2); // for seams to be at top and bottom of scene
+    
+    // addDivertor();
+    addCoils();
+    
     var render = function()
     {
-        // Uncontrollable rotating camera
-        camera.position.x = coordinateOrigin.x - radius * Math.pow(Math.cos( constant * elapsedTime ),2);         
-        camera.position.y = coordinateOrigin.y - radius * Math.pow(Math.sin( constant * elapsedTime ),2);
-        camera.lookAt( coordinateOrigin );
-        elapsedTime += 1;
-        
         requestAnimationFrame(render);
-        renderer.render(scene, camera);
+        var et = clock.getElapsedTime();
+        var speed = 0.2;
+        map.offset = new THREE.Vector2((speed*et) % 1, (speed*et) % 1);
+        camera.position.setX(8*Math.cos(0.17*et)).setY(8*Math.sin(0.17*et)).setZ(6*(Math.sin(0.19*et)+0.5));
+        camera.lookAt(origin);
+        
+        // renderer.render(scene, camera); // normal renderer
+        composer.render(); // bloom renderer
     };
 
     render();
 
+    function addCoils()
+    {
+        var nonplanar = [522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537, 538, 539, 540, 541, 542, 543, 544, 545, 546, 547, 548, 549, 550, 551, 552, 553, 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568, 569, 570, 571]
+        var frequency = 2.4; //2*Math.PI/10;
+        for (var i in nonplanar) {
+            // Source: https://krazydad.com/tutorials/makecolors.php
+            let red   = Math.floor(Math.sin(frequency*i + 0) * 127 + 128);
+            let green = Math.floor(Math.sin(frequency*i + 2) * 127 + 128);
+            let blue  = Math.floor(Math.sin(frequency*i + 4) * 127 + 128);
+            let color = new THREE.Color('rgb(' + red + ', ' + green + ', ' + blue + ')');
+            fetch('assets/coils/' + nonplanar[i] + '.json').then(response => response.json()).then(json => addLine(json, color));
+        }
+        var planar = [572, 573, 574, 575, 576, 577, 578, 579, 580, 581, 582, 583, 584, 585, 586, 587, 588, 589, 590, 591];
+        for (var i in planar) {
+            fetch('assets/coils/' + planar[i] + '.json').then(response => response.json()).then(json => addLine(json, 0x333333));
+        }
+    }
+    
     function addDivertor()
     {
         var ids = [170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309];
         for (var idi in ids)
-            fetch('divertor/' + ids[idi] + '.json').then(response => response.json()).then(json => addComponent(json));
+            fetch('assets/divertor/' + ids[idi] + '.json').then(response => response.json()).then(json => addComponent(json));
+    }
+    
+    function addLine(json, color)
+    {
+        var material = new THREE.LineBasicMaterial({color: color}); // was 0xFF00FF
+        var geometry = new THREE.Geometry();
+        for (var i = 0; i < json.x1.length; i++)
+            geometry.vertices.push(new THREE.Vector3(json.x1[i], json.x2[i], json.x3[i]));
+        var line = new THREE.Line( geometry, material );
+        scene.add( line );
     }
 
     function addComponent(json)
@@ -252,13 +276,6 @@
         });
     }
 
-    function updateLCFS(json)
-    {
-        LCFSDict[currentConfig].visible = false;
-        LCFSDict[json.name] = plotLCFS(json);
-        currentConfig = json.name;
-    }
-
     function plotLCFS(input)
     {
         var LCFS = new THREE.Object3D();
@@ -299,21 +316,23 @@
         LCFSphi = input.phi;
         var geometry = new THREE.ParametricGeometry(parametricLCFS, 252, 80);
         var material = new THREE.MeshPhongMaterial(
-        {color: 0x156289, emissive: 0x072534,
-                                                transparent: true, opacity: 0.8});
+        {map: map, color: 0x156289, emissive: 0x072534,
+                                                transparent: false, opacity: 0.8});
         LCFS.add(new THREE.Mesh(geometry, material));
         scene.add(LCFS);
         return LCFS;
     }
 
-    function parametricLCFS(u, v)
+    function parametricLCFS(u, v, vector)
     {
         u = (u * 252) % 252;
         v = (v * 80) % 80;
         var r = LCFSr[v + u * 80];
         var z = LCFSz[v + u * 80];
         var phi = LCFSphi[u];
-        return new THREE.Vector3(r * Math.cos(phi), r * Math.sin(phi), z);
+        vector.x = r * Math.cos(phi);
+        vector.y = r * Math.sin(phi);
+        vector.z = z;
     }
 
     function getLookAtVector(controls)
@@ -341,73 +360,6 @@
             STL.receiveShadow = true;
             scene.add(STL);
         });
-    }
-
-    function addLabel(text, x, y, z, color)
-    {
-        let sprite = new THREE.TextSprite(
-        {
-            textSize: 0.3,
-            texture:
-            {
-                text: text,
-                fontFamily: 'Arial, Helvetica, sans-serif'
-            },
-            material:
-            {
-                color: color || 0x000
-            },
-        });
-        sprite.position.setX(x).setY(y).setZ(z);
-        scene.add(sprite);
-    }
-
-    function addAxes(length)
-    {
-        var axes = new THREE.Object3D();
-        axes.add(axis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(length, 0, 0), 0x000, false));
-        axes.add(axis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(-length, 0, 0), 0x000, true));
-        axes.add(axis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, length, 0), 0x000, false));
-        axes.add(axis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -length, 0), 0x000, true));
-        axes.add(axis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, length), 0x000, false));
-        axes.add(axis(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -length), 0x000, true));
-        addLabel('x', 1.2 * length, 0, 0);
-        addLabel('y', 0, 1.2 * length, 0);
-        addLabel('z', 0, 0, 1.2 * length);
-        scene.add(axes);
-    }
-
-    function axis(src, dst, colorHex, dashed)
-    {
-        var geom = new THREE.Geometry(),
-            mat;
-        if (dashed)
-        {
-            mat = new THREE.LineDashedMaterial(
-            {
-                linewidth: 1,
-                color: colorHex,
-                dashSize: 0.1,
-                gapSize: 0.1,
-                transparent: true,
-                opacity: 0.4
-            });
-        }
-        else
-        {
-            mat = new THREE.LineBasicMaterial(
-            {
-                linewidth: 1,
-                color: colorHex,
-                transparent: true,
-                opacity: 0.4
-            });
-        }
-        geom.vertices.push(src.clone());
-        geom.vertices.push(dst.clone());
-        geom.computeLineDistances(); // This one is SUPER important, otherwise dashed lines will appear as simple plain lines
-        var axis = new THREE.Line(geom, mat, THREE.LineSegments);
-        return axis;
     }
     </script>
 </body>

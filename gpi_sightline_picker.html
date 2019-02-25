@@ -56,22 +56,22 @@ scene.add(pointLight)
 // Add axes
 addAxes(0.5);
 
-addSTL('stls/aek50_01.stl');
+addSTL('assets/ports/aek50_01.stl');
 addLabel('AEK50', 0.5, -6, 2);
-addSTL('stls/aee11_01.stl');
+addSTL('assets/ports/aee11_01.stl');
 addLabel('AEE11', 6, 0.5, 2);
-addSTL('stls/aee50_01.stl');
+addSTL('assets/ports/aee50_01.stl');
 addLabel('AEE50', 2, -6, 2);
-addSTL('stls/aek10_01.stl');
+addSTL('assets/ports/aek10_01.stl');
 addLabel('AEK10', 6, -1.5, 2);
-addSTL('stls/aek41_01.stl');
+addSTL('assets/ports/aek41_01.stl');
 addLabel('AEK41', -4.3, -4.3, 2)
 
 var LCFSDict = {};
 var LCFSr, LCFSz, LCFSphi;
 var key;
 var currentConfig = 'A_standard_beta-0';
-fetch('lcfs/A_standard_beta-0.json').then(response => response.json()).then(json => LCFSDict[currentConfig] = plotLCFS(json));
+fetch('assets/lcfs/A_standard_beta-0.json').then(response => response.json()).then(json => LCFSDict[currentConfig] = plotLCFS(json));
 var closestLCFSpoint;
 var closestLCFSpointSphere;
 var Bdirection;
@@ -311,7 +311,7 @@ function makeGUI(json)
                          currentConfig = key;
                      }
                      else
-                         fetch('lcfs/' + key + '.json').then(response => response.json()).then(json => updateLCFS(json));
+                         fetch('assets/lcfs/' + key + '.json').then(response => response.json()).then(json => updateLCFS(json));
                  });
 
     var controlsFolder = gui.addFolder('Controls');

@@ -76,13 +76,13 @@
         scene.add(line);
     }
     
-    fetch('magnetic_axis.json').then(response => response.json()).then(json => addMagneticAxis(json));
+    fetch('assets/magnetic_axis.json').then(response => response.json()).then(json => addMagneticAxis(json));
 
     var LCFSDict = {};
     var LCFSr, LCFSz, LCFSphi;
     var key;
     var currentConfig = 'A_standard_beta-0';
-    fetch('lcfs/A_standard_beta-0.json').then(response => response.json()).then(json => LCFSDict[currentConfig] = plotLCFS(json));
+    fetch('assets/lcfs/A_standard_beta-0.json').then(response => response.json()).then(json => LCFSDict[currentConfig] = plotLCFS(json));
     var closestLCFSpoint;
     var closestLCFSpointSphere;
     var Bdirection;
@@ -331,7 +331,7 @@
                     currentConfig = key;
                 }
                 else
-                    fetch('lcfs/' + key + '.json').then(response => response.json()).then(json => updateLCFS(json));
+                    fetch('assets/lcfs/' + key + '.json').then(response => response.json()).then(json => updateLCFS(json));
             });
 
         var controlsFolder = gui.addFolder('Controls');

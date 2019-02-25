@@ -1,6 +1,7 @@
 import numpy as np
 import urllib.request
 import json
+import requests
     
     
 def saveLCFSjson():
@@ -32,8 +33,19 @@ def saveLCFSjson():
         lcfs_rs = [round(l, 5) for l in lcfs_rs]
         lcfs_zs = [round(l, 5) for l in lcfs_zs]
 
-        with open('lcfs_{}.json'.format(config_name), 'w') as f:
+        with open('assets/lcfs_{}.json'.format(config_name), 'w') as f:
             f.write(json.dumps({"name": config_name, "r": lcfs_rs, "z": lcfs_zs, "phi": toroidal_angles}, separators=(',', ':')))
+            
+            
+def saveCoils():
+    coil_ids = list(range(522, 571+1))
+    planar = list(range(572, 591+1))
+    coil_ids.extend(planar)
+    for coil_id in coil_ids:
+        url = 'http://esb.ipp-hgw.mpg.de:8280/services/CoilsDBRest/coil/%d/data' % coil_id
+        data = requests.get(url).json()['polylineFilament']['vertices']
+        with open(f'assets/coils/{coil_id}.json', 'w') as f:
+            f.write(json.dumps(data))
 
 
 def saveDivertorJson():
@@ -42,7 +54,7 @@ def saveDivertorJson():
     for component_id in ids:
         with urllib.request.urlopen(f'{base_url}/{component_id}/data') as url:
             data = json.loads(url.read().decode())
-        with open(f'divertor/{component_id}.json', 'w') as f:
+        with open(f'assets/divertor/{component_id}.json', 'w') as f:
             f.write(json.dumps(data))
             
             
@@ -57,9 +69,9 @@ def saveMagneticAxis():
     out = {}
     out['r'] = r
     out['z'] = z
-    with open('magnetic_axis.json', 'w') as f:
+    with open('assets/magnetic_axis.json', 'w') as f:
         f.write(json.dumps(out))
 
 
 if __name__ == '__main__':
-    saveMagneticAxis()
+    saveCoils()
