@@ -57,14 +57,11 @@ var phiTarget = (cols-2)*Math.PI/cols;
 var deltaTheta = (Math.PI-thetaTarget)/animationSteps;
 var deltaPhi = -(Math.PI-phiTarget)/animationSteps;
 var widthSteps = Array(rows+1);
-console.log(torusR, torusa);
 for (var r = 0; r <= rows; r++) {
 	var ringRadiusTarget = torusR-torusa*Math.cos(-r*(Math.PI-thetaTarget));
-	console.log(r, ringRadiusTarget);
 	var ringCircumferenceTarget = 2*Math.PI*ringRadiusTarget;
 	widthSteps[r] = -(ringCircumferenceTarget-planeWidth)/animationSteps/cols;
 }
-console.log(widthSteps);
 var directions = Array((rows+1)*(cols+1));
 var speeds = Array((rows+1)*(cols+1));
 var torusVertices = Array((rows+1)*(cols+1));
@@ -146,7 +143,7 @@ function init() {
 	}
 	geometry.vertices = torusVertices;
 
-	// setTimeout(startAnimation, 2000);
+	setTimeout(startAnimation, 2000);
 }
 
 function changeTexture(name) {
