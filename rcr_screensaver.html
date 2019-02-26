@@ -105,7 +105,7 @@
         var speed = 0.3;
         map.offset = new THREE.Vector2((speed*et) % 1, (speed*et) % 1);
         camera.position.setX(8*Math.cos(0.17*et)).setY(8*Math.sin(0.17*et)).setZ(6*(Math.sin(0.19*et)+0.5));
-        camera.lookAt(origin.setX(2*Math.cos(0.13*et)).setY(2*Math.cos(2*0.13*et)));
+        camera.lookAt(origin.setX(0.3*camera.position.x+2*Math.cos(0.13*et)).setY(0.3*camera.position.y+2*Math.cos(2*0.13*et)));
         
         // renderer.render(scene, camera); // normal renderer
         composer.render(); // bloom renderer
