@@ -83,10 +83,12 @@ function init() {
 	scene.background = new THREE.Color( 0xffffff );
 
 	// Lights
-	scene.add( new THREE.AmbientLight( 0xffffff ) );
-	var light = new THREE.PointLight( 0xff0000, 1 );
-	// light.position.set( 0, 0, 2000 );
-	// scene.add( light );
+	// scene.add( new THREE.AmbientLight( 0xffffff, 0.3 ) );
+	var light = new THREE.PointLight( 0xffffff, 1 );
+	light.position.set( -torusR-torusa, 0, 100 );
+	pointLightHelper = new THREE.PointLightHelper( light, 50, 0xff0000); scene.add( pointLightHelper );
+	light.rotateY(Math.PI/2);
+	scene.add( light );
 
 	group = new THREE.Group();
 	scene.add( group );
