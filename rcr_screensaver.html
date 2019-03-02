@@ -81,13 +81,15 @@
     scene.add(pointLight);
     
     // LCFS
-    var LCFSDict = {};
     var LCFSr, LCFSz, LCFSphi;
     var currentConfig = 'A_standard_beta-0';
-    var map = new THREE.TextureLoader().load( 'assets/textures/metal_iota_1_darkestest.png' );
+    var map = new THREE.TextureLoader().load( 'assets/textures/metal_iota_1_darkest_2_transparent.png' );
     map.wrapS = map.wrapT = THREE.RepeatWrapping;
     map.anisotropy = 16;
-    fetch('assets/lcfs/A_standard_beta-0.json').then(response => response.json()).then(json => LCFSDict[currentConfig] = plotLCFS(json));
+    var map2 = new THREE.TextureLoader().load( 'assets/textures/metal_iota_1_darkest_2_transparent.png' );
+    map2.wrapS = map2.wrapT = THREE.RepeatWrapping;
+    map2.anisotropy = 16;
+    fetch('assets/lcfs/A_standard_beta-0.json').then(response => response.json()).then(json => plotLCFS(json));
     
     var bg = new THREE.TextureLoader().load( 'assets/textures/gradient.png' );
     var backgroundSphere  = new THREE.SphereGeometry(30, 60, 60);
@@ -95,7 +97,6 @@
     scene.add(new THREE.Mesh(backgroundSphere, material));
     backgroundSphere.rotateX(Math.PI/2); // for seams to be at top and bottom of scene
     
-    // addDivertor();
     addCoils();
     
     var render = function()
@@ -104,6 +105,7 @@
         var et = clock.getElapsedTime();
         var speed = 0.3;
         map.offset = new THREE.Vector2((speed*et) % 1, (speed*et) % 1);
+        map2.offset = new THREE.Vector2((-1.07*speed*et) % 1, (-1.07*speed*et) % 1);
         camera.position.setX(8*Math.cos(0.17*et))
                        .setY(8*Math.sin(0.17*et))
                        .setZ(6*(Math.cos(0.15*et)**3+0.25));
@@ -134,13 +136,6 @@
         }
     }
     
-    function addDivertor()
-    {
-        var ids = [170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309];
-        for (var idi in ids)
-            fetch('assets/divertor/' + ids[idi] + '.json').then(response => response.json()).then(json => addComponent(json));
-    }
-    
     function addLine(json, color)
     {
         var material = new THREE.LineBasicMaterial({color: color}); // was 0xFF00FF
@@ -151,168 +146,32 @@
         scene.add( line );
     }
 
-    function addComponent(json)
-    {
-        var data = json.surfaceMesh;
-        var vec = [];
-        var faces = [];
-
-        for (var i = 0; i < data.nodes.x1.length; i++)
-            vec.push(new THREE.Vector3(data.nodes.x1[i], data.nodes.x2[i], data.nodes.x3[i]));
-
-        if (data.numVertices[0] == 3)
-        {
-            for (var i = 0; i < data.polygons.length; i++)
-                faces.push(new THREE.Face3(data.polygons[i++] - 1, data.polygons[i++] - 1, data.polygons[i] - 1));
-        }
-        else
-        {
-            for (var i = 0; i < data.polygons.length; i++)
-            {
-                v1 = data.polygons[i++] - 1;
-                v2 = data.polygons[i++] - 1;
-                v3 = data.polygons[i++] - 1;
-                v4 = data.polygons[i] - 1;
-                faces.push(new THREE.Face3(v1, v2, v3));
-                faces.push(new THREE.Face3(v1, v3, v4));
-            }
-        }
-
-        var geometry4 = new THREE.Geometry();
-        geometry4.vertices = vec;
-        geometry4.faces = faces;
-        geometry4.computeFaceNormals();
-
-        var material3 = new THREE.MeshStandardMaterial(
-        {
-            color: 0x666666,
-            side: THREE.DoubleSide,
-            transparent: true,
-            opacity: 0.7,
-            flatShading: false,
-            metalness: 0.5,
-            roughness: 0.5
-        });
-        var line4 = new THREE.Mesh(geometry4, material3);
-        //line4.name = id.toString();
-        scene.add(line4);
-        var vec = geometry4.vertices[0];
-        // addLabel(id.toString(), vec.x,vec.y, vec.z);
-    }
-
-    function addComponentById(id)
-    {
-        var compID = 'Component_' + id;
-        var material3 = new THREE.MeshLambertMaterial(
-        {
-            color: 0x555555,
-            side: THREE.DoubleSide,
-            transparent: true,
-            opacity: 0.7
-        });
-
-        $.ajax(
-        {
-            type: 'GET',
-            url: 'http://esb.ipp-hgw.mpg.de:8280/services/ComponentsDbRest/component/' + id + '/data',
-            dataType: 'json',
-            success: function(json)
-            {
-
-                var data = json.surfaceMesh;
-
-                if (data == undefined)
-                    data = json.volumeMesh.faces;
-
-                var vec = [];
-                var faces = [];
-
-                for (var i = 0; i < data.nodes.x1.length; i++)
-                    vec.push(new THREE.Vector3(data.nodes.x1[i], data.nodes.x2[i], data.nodes.x3[i]));
-
-                if (data.numVertices[0] == 3)
-                {
-                    for (var i = 0; i < data.polygons.length; i++)
-                        faces.push(new THREE.Face3(data.polygons[i++] - 1, data.polygons[i++] - 1, data.polygons[i] - 1));
-                }
-                else
-                {
-                    for (var i = 0; i < data.polygons.length; i++)
-                    {
-                        v1 = data.polygons[i++] - 1;
-                        v2 = data.polygons[i++] - 1;
-                        v3 = data.polygons[i++] - 1;
-                        v4 = data.polygons[i] - 1;
-                        faces.push(new THREE.Face3(v1, v2, v3));
-                        faces.push(new THREE.Face3(v1, v3, v4));
-                    }
-                }
-
-                var geometry4 = new THREE.Geometry();
-                geometry4.vertices = vec;
-                geometry4.faces = faces;
-                geometry4.computeFaceNormals();
-
-                var line4 = new THREE.Mesh(geometry4, material3);
-                line4.name = compID;
-                scene.add(line4);
-                var vec = geometry4.vertices[0];
-                // addLabel(id.toString(), vec.x, vec.y, vec.z);
-                // var lineEdges = new THREE.EdgesHelper(line4, 0x999999);
-                // scene.add(lineEdges);
-            },
-            error: function(data)
-            {
-                console.log('Error getting component.');
-            },
-        });
-    }
-
     function plotLCFS(input)
     {
         var LCFS = new THREE.Object3D();
-        LCFS.points = [];
-        var mat = new THREE.LineBasicMaterial(
-        {
-            linewidth: 1,
-            color: 0x0000ff,
-            transparent: true,
-            opacity: 0.7
-        });
         var lcfs_x = Array(80 * 252);
         var lcfs_y = Array(80 * 252);
         var lcfs_z = input.z;
-        for (i = 0; i < 252; i++)
-        {
-            var geom = new THREE.Geometry();
-            for (j = 0; j < 80; j++)
-            {
-                lcfs_x[i * 80 + j] = input.r[i * 80 + j] * Math.cos(input.phi[i]);
-                lcfs_y[i * 80 + j] = input.r[i * 80 + j] * Math.sin(input.phi[i]);
-                geom.vertices.push(new THREE.Vector3(lcfs_x[i * 80 + j], lcfs_y[i * 80 + j], lcfs_z[i * 80 + j]));
-                LCFS.points.push([lcfs_x[i * 80 + j], lcfs_y[i * 80 + j], lcfs_z[i * 80 + j]]);
-            }
-            //if (i % 25 == 0)
-            //    LCFS.add(new THREE.Line(geom, mat, THREE.LineSegments));
-        }
-        for (i = 0; i < 79; i++)
-        {
-            var geom = new THREE.Geometry();
-            for (j = 0; j < 252; j++)
-                geom.vertices.push(new THREE.Vector3(lcfs_x[i + j * 80], lcfs_y[i + j * 80], lcfs_z[i + j * 80]));
-            geom.vertices.push(new THREE.Vector3(lcfs_x[i], lcfs_y[i], lcfs_z[i]));
-            // LCFS.add(new THREE.Line(geom, mat, THREE.LineSegments));
-        }
         LCFSr = input.r;
         LCFSz = input.z;
         LCFSphi = input.phi;
         var geometry = new THREE.ParametricGeometry(parametricLCFS, 252, 80);
-        var material = new THREE.MeshPhongMaterial(
-        {map: map, color: 0x156289, emissive: 0x072534,
-                                                transparent: false, opacity: 0.8});
-        LCFS.add(new THREE.Mesh(geometry, material));
-        scene.add(LCFS);
-        return LCFS;
+        var material = new THREE.MeshPhongMaterial({map: map, 
+                                                    color: 0x156289, 
+                                                    emissive: 0x072534,
+                                                    transparent: true, 
+                                                    opacity: .5, 
+                                                    side: THREE.DoubleSide,
+                                                    depthWrite: false});
+        var material2 = new THREE.MeshPhongMaterial({map: map2, 
+                                                    color: 0x156289, 
+                                                    emissive: 0x072534,
+                                                    transparent: true, 
+                                                    opacity: .5, 
+                                                    side: THREE.DoubleSide,
+                                                    depthWrite: false});
+        scene.add(new THREE.Mesh(geometry, material));
+        scene.add(new THREE.Mesh(geometry, material2));
     }
 
     function parametricLCFS(u, v, vector)
@@ -325,13 +184,6 @@
         vector.x = r * Math.cos(phi);
         vector.y = r * Math.sin(phi);
         vector.z = z;
-    }
-
-    function getLookAtVector(controls)
-    {
-        var phi = controls.getAzimuthalAngle();
-        var theta = controls.getPolarAngle();
-        return new THREE.Vector3(-Math.sin(theta) * Math.sin(phi), -Math.cos(theta), -Math.sin(theta) * Math.cos(phi));
     }
     </script>
 </body>
