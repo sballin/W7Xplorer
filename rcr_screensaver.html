@@ -104,9 +104,12 @@
         var et = clock.getElapsedTime();
         var speed = 0.3;
         map.offset = new THREE.Vector2((speed*et) % 1, (speed*et) % 1);
-        camera.position.setX(8*Math.cos(0.17*et)).setY(8*Math.sin(0.17*et)).setZ(6*(Math.sin(0.19*et)+0.5));
-        camera.lookAt(origin.setX(0.3*camera.position.x+2*Math.cos(0.13*et)).setY(0.3*camera.position.y+2*Math.cos(2*0.13*et)));
-        
+        camera.position.setX(8*Math.cos(0.17*et))
+                       .setY(8*Math.sin(0.17*et))
+                       .setZ(6*(Math.cos(0.15*et)**3+0.25));
+        camera.lookAt(origin.setX(0.3*camera.position.x+2*Math.cos(0.13*et))
+                            .setY(0.3*camera.position.y+2*Math.cos(2*0.13*et))
+                            .setZ(-3*Math.sin(0.15*et)**4));
         // renderer.render(scene, camera); // normal renderer
         composer.render(); // bloom renderer
     };
@@ -115,7 +118,7 @@
 
     function addCoils()
     {
-        var nonplanar = [522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537, 538, 539, 540, 541, 542, 543, 544, 545, 546, 547, 548, 549, 550, 551, 552, 553, 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568, 569, 570, 571]
+        var nonplanar = [522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537, 538, 539, 540, 541, 542, 543, 544, 545, 546, 547, 548, 549, 550, 551, 552, 553, 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568, 569, 570, 571];
         var frequency = 2.4; //2*Math.PI/10;
         for (var i in nonplanar) {
             // Source: https://krazydad.com/tutorials/makecolors.php
